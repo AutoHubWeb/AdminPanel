@@ -1,9 +1,41 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, insertToolSchema, insertVpsSchema, insertProxySchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Login route
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Get all users to find the matching user
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.username === username);
+      
+      // For demo purposes, we'll check against a simple password map
+      // In a real application, this would be handled securely with hashed passwords
+      const validCredentials: Record<string, string> = {
+        "admin": "admin123",
+        "user": "user123",
+        "demo": "demo"
+      };
+      
+      if (user && validCredentials[username] === password) {
+        res.json({
+          user: user,
+          token: "mock-jwt-token-" + user.id,
+          message: "Login successful"
+        });
+      } else {
+        res.status(401).json({ message: "Invalid credentials" });
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      res.status(500).json({ message: "Error during login" });
+    }
+  });
+
   // User management routes
   app.get("/api/users", async (req, res) => {
     try {
@@ -63,6 +95,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting user:", error);
       res.status(500).json({ message: "Error deleting user" });
+    }
+  });
+
+  // Tools routes
+  app.get("/api/tools", async (req, res) => {
+    try {
+      const tools = await storage.getAllTools();
+      res.json(tools);
+    } catch (error) {
+      console.error("Error fetching tools:", error);
+      res.status(500).json({ message: "Error fetching tools" });
+    }
+  });
+
+  // VPS routes
+  app.get("/api/vps", async (req, res) => {
+    try {
+      const vps = await storage.getAllVps();
+      res.json(vps);
+    } catch (error) {
+      console.error("Error fetching VPS:", error);
+      res.status(500).json({ message: "Error fetching VPS" });
+    }
+  });
+
+  // Proxies routes
+  app.get("/api/proxies", async (req, res) => {
+    try {
+      const proxies = await storage.getAllProxies();
+      res.json(proxies);
+    } catch (error) {
+      console.error("Error fetching proxies:", error);
+      res.status(500).json({ message: "Error fetching proxies" });
     }
   });
 

@@ -24,8 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = () => {
       const storedAuth = localStorage.getItem("isAuthenticated");
       const storedUser = localStorage.getItem("user");
+      const storedToken = localStorage.getItem("authToken");
       
-      if (storedAuth === "true" && storedUser) {
+      if (storedAuth === "true" && storedUser && storedToken) {
         try {
           const userData = JSON.parse(storedUser);
           setUser(userData);
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           localStorage.removeItem("user");
           localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("authToken");
         }
       }
       
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (user: User) => {
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("isAuthenticated", "true");
+    // authToken is already set in the login page
     setUser(user);
     setIsAuthenticated(true);
   };
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("authToken");
     setUser(null);
     setIsAuthenticated(false);
   };

@@ -1,24 +1,26 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/AuthContext"
+import { authApi } from "@/lib/api"
 import { User, Lock, Shield, Clock } from "lucide-react"
 
 export default function SettingsPage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState("")
+  const [isFetching, setIsFetching] = useState(true)
   
   // Form states
   const [profileData, setProfileData] = useState({
-    email: "admin@example.com",
-    phone: "0123456789",
-    fullName: "Quản trị viên",
+    email: "",
+    phone: "",
+    fullName: "",
   })
   
   const [passwordData, setPasswordData] = useState({
@@ -27,35 +29,138 @@ export default function SettingsPage() {
     confirmPassword: ""
   })
 
+  // Fetch admin information when component mounts
+  useEffect(() => {
+    const fetchAdminInfo = async () => {
+      try {
+        setIsFetching(true)
+        
+        const response = await authApi.me()
+        const userData = response.data.data
+        
+        setProfileData({
+          email: userData.email || "",
+          phone: userData.phone || "",
+          fullName: userData.fullname || userData.username || ""
+        })
+      } catch (err: any) {
+        console.error("Error fetching admin info:", err)
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải thông tin admin",
+          variant: "destructive",
+        })
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    fetchAdminInfo()
+  }, [toast])
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setMessage("")
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    setMessage("Cập nhật thông tin thành công!")
-    setIsLoading(false)
+    try {
+      await authApi.updateMe({
+        fullname: profileData.fullName,
+        phone: profileData.phone
+      })
+      
+      toast({
+        title: "Thành công",
+        description: "Cập nhật thông tin thành công!",
+      })
+    } catch (err: any) {
+      console.error("Error updating profile:", err)
+      
+      // Handle API error messages
+      let errorMessage = "Có lỗi xảy ra khi cập nhật thông tin"
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error
+      }
+      
+      toast({
+        title: "Lỗi",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage("Mật khẩu xác nhận không khớp!")
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu xác nhận không khớp!",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu mới phải có ít nhất 6 ký tự!",
+        variant: "destructive",
+      })
       return
     }
     
     setIsLoading(true)
-    setMessage("")
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    setMessage("Đổi mật khẩu thành công!")
-    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
-    setIsLoading(false)
+    try {
+      await authApi.changePassword({
+        oldPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      })
+      
+      toast({
+        title: "Thành công",
+        description: "Đổi mật khẩu thành công!",
+      })
+      
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
+    } catch (err: any) {
+      console.error("Error changing password:", err)
+      
+      // Handle API error messages
+      let errorMessage = "Có lỗi xảy ra khi đổi mật khẩu"
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error
+      }
+      
+      toast({
+        title: "Lỗi",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isFetching) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Thông tin Admin</h1>
+          <p className="text-muted-foreground">Đang tải thông tin...</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -68,12 +173,6 @@ export default function SettingsPage() {
           Cập nhật thông tin cá nhân và quản lý tài khoản
         </p>
       </div>
-
-      {message && (
-        <Alert>
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid gap-6">
         {/* Thông tin cá nhân */}

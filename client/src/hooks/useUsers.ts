@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { userApi } from "@/lib/api";
 import type { User, InsertUser } from "@shared/schema";
 
 // Fetch all non-admin users
@@ -6,11 +7,8 @@ export function useUsers() {
   return useQuery({
     queryKey: ["users"],
     queryFn: async (): Promise<User[]> => {
-      const response = await fetch("/api/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      return response.json();
+      const response = await userApi.list();
+      return response.data.data || [];
     },
   });
 }
@@ -21,19 +19,8 @@ export function useCreateUser() {
   
   return useMutation({
     mutationFn: async (userData: InsertUser): Promise<User> => {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to create user");
-      }
-      
-      return response.json();
+      const response = await userApi.create(userData);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -47,19 +34,8 @@ export function useUpdateUser() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<InsertUser> }): Promise<User> => {
-      const response = await fetch(`/api/users/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to update user");
-      }
-      
-      return response.json();
+      const response = await userApi.update(id, data);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -73,13 +49,7 @@ export function useDeleteUser() {
   
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const response = await fetch(`/api/users/${id}`, {
-        method: "DELETE",
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to delete user");
-      }
+      await userApi.delete(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
