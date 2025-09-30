@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -50,6 +50,11 @@ export function EntityForm({
   isLoading = false
 }: EntityFormProps) {
   const [formData, setFormData] = useState(initialData)
+
+  // Update form data when initialData changes (e.g. when editing a different item)
+  useEffect(() => {
+    setFormData(initialData)
+  }, [initialData, isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -113,7 +118,7 @@ export function EntityForm({
                 ) : (
                   <Input
                     id={field.name}
-                    type={field.type}
+                    type={field.type === "text" && field.name === "password" ? "password" : field.type}
                     placeholder={field.placeholder}
                     value={formData[field.name] || ""}
                     onChange={(e) => handleInputChange(field.name, e.target.value)}

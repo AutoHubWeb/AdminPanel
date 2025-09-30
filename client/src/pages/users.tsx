@@ -1,74 +1,89 @@
-import { useState } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { DataTable } from "@/components/data-table"
 import { EntityForm } from "@/components/entity-form" 
 import type { User } from "@shared/schema"
 import { useToast } from "@/hooks/use-toast"
+import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/useUsers"
+
+// Memoized DataTable component to prevent unnecessary re-renders
+const UsersDataTable = ({
+  users,
+  columns,
+  handleAdd,
+  handleEdit,
+  handleDelete,
+  handleSearch
+}: {
+  users: User[];
+  columns: any[];
+  handleAdd: () => void;
+  handleEdit: (user: User) => void;
+  handleDelete: (user: User) => void;
+  handleSearch: (keyword: string) => void;
+}) => (
+  <DataTable
+    title="Quản lý User"
+    data={users}
+    columns={columns}
+    onAdd={handleAdd}
+    onEdit={handleEdit}
+    onDelete={handleDelete}
+    searchPlaceholder="Tìm kiếm user..."
+    searchKey="username"
+    onSearch={handleSearch}
+  />
+);
+
+// Memoized EntityForm component to prevent unnecessary re-renders
+const UsersEntityForm = ({
+  editingUser,
+  isFormOpen,
+  setIsFormOpen,
+  formFields,
+  handleSubmit
+}: {
+  editingUser: User | null;
+  isFormOpen: boolean;
+  setIsFormOpen: (open: boolean) => void;
+  formFields: any[];
+  handleSubmit: (data: Record<string, any>) => void;
+}) => {
+  // Transform user data to match form field names
+  const initialData = editingUser ? {
+    fullname: editingUser.username,
+    email: editingUser.email,
+    phone: editingUser.phone || "",
+    // Note: password is not included for security reasons
+  } : {};
+
+  return (
+    <EntityForm
+      title={editingUser ? "Chỉnh sửa User" : "Thêm User mới"}
+      description={editingUser ? "Cập nhật thông tin user" : "Tạo tài khoản user mới"}
+      fields={formFields}
+      initialData={initialData}
+      isOpen={isFormOpen}
+      onOpenChange={setIsFormOpen}
+      onSubmit={handleSubmit}
+      isLoading={false}
+    />
+  );
+};
 
 export default function UsersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [searchKeyword, setSearchKeyword] = useState("")
   const { toast } = useToast()
+  
+  const { data: users = [], isLoading, error } = useUsers(searchKeyword)
+  const { mutate: createUser } = useCreateUser()
+  const { mutate: updateUser } = useUpdateUser()
+  const { mutate: deleteUser } = useDeleteUser()
 
-  // Mock data for users
-  const mockUsers: User[] = [
-    {
-      id: "1",
-      username: "admin",
-      email: "admin@example.com",
-      phone: "0123456789",
-      role: "admin",
-      status: "active",
-      lastLogin: new Date("2025-09-29T10:30:00Z"),
-      createdAt: new Date("2025-09-20T08:00:00Z")
-    },
-    {
-      id: "2",
-      username: "nguyenvan",
-      email: "nguyenvan@gmail.com",
-      phone: "0987654321",
-      role: "user",
-      status: "active",
-      lastLogin: new Date("2025-09-28T15:45:00Z"),
-      createdAt: new Date("2025-09-15T14:30:00Z")
-    },
-    {
-      id: "3",
-      username: "tranthimai",
-      email: "mai.tran@yahoo.com",
-      phone: "0966778899",
-      role: "user",
-      status: "active",
-      lastLogin: new Date("2025-09-27T09:15:00Z"),
-      createdAt: new Date("2025-09-10T11:20:00Z")
-    },
-    {
-      id: "4",
-      username: "hoangminh",
-      email: "hoangminh@outlook.com", 
-      phone: null,
-      role: "user",
-      status: "inactive",
-      lastLogin: new Date("2025-09-20T16:00:00Z"),
-      createdAt: new Date("2025-08-25T13:45:00Z")
-    },
-    {
-      id: "5",
-      username: "lethihong",
-      email: "hong.le@gmail.com",
-      phone: "0912345678",
-      role: "user", 
-      status: "active",
-      lastLogin: new Date("2025-09-29T08:20:00Z"),
-      createdAt: new Date("2025-09-05T16:30:00Z")
-    }
-  ]
-
-  const users = mockUsers
-  const isLoading = false
-  const error = null
-
-  const columns = [
-    { header: "Tên đăng nhập", accessor: "username" as keyof User },
+  // Memoize columns to prevent re-creation on each render
+  const columns = useMemo(() => [
+    { header: "Fullname", accessor: "username" as keyof User },
     { header: "Email", accessor: "email" as keyof User },
     { 
       header: "Số điện thoại", 
@@ -92,56 +107,154 @@ export default function UsersPage() {
         </span>
       )
     }
-  ]
+  ], []);
 
-  const formFields = [
-    { name: "username", label: "Tên đăng nhập", type: "text" as const, required: true },
-    { name: "email", label: "Email", type: "email" as const, required: true },
-    { name: "phone", label: "Số điện thoại", type: "text" as const, required: false },
-    {
-      name: "status",
-      label: "Trạng thái", 
-      type: "select" as const,
-      options: [
-        { value: "active", label: "Hoạt động" },
-        { value: "inactive", label: "Không hoạt động" }
-      ]
+  // Memoize form fields to prevent re-creation on each render
+  const formFields = useMemo(() => {
+    const baseFields = [
+      { name: "fullname", label: "Fullname", type: "text" as const, required: true },
+      { name: "email", label: "Email", type: "email" as const, required: true },
+    ];
+    
+    // Only include password field for new users, not for editing existing users
+    if (!editingUser) {
+      baseFields.push({ name: "password", label: "Mật khẩu", type: "text" as const, required: true });
     }
-  ]
+    
+    baseFields.push({ name: "phone", label: "Số điện thoại", type: "text" as const, required: false });
+    
+    return baseFields;
+  }, [editingUser]);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setEditingUser(null)
     setIsFormOpen(true)
-  }
+  }, [setIsFormOpen]);
 
-  const handleEdit = (user: User) => {
+  const handleEdit = useCallback((user: User) => {
     setEditingUser(user)
     setIsFormOpen(true)
-  }
+  }, [setIsFormOpen]);
 
-  const handleDelete = async (user: User) => {
-    console.log("Deleting user:", user)
-    toast({
-      title: "Thành công",
-      description: `Đã xóa user ${user.username} thành công`,
+  const handleDelete = useCallback((user: User) => {
+    deleteUser(user.id, {
+      onSuccess: () => {
+        toast({
+          title: "Thành công",
+          description: `Đã xóa user ${user.username} thành công`,
+        })
+      },
+      onError: (error) => {
+        toast({
+          title: "Lỗi",
+          description: `Có lỗi xảy ra khi xóa user ${user.username}`,
+          variant: "destructive",
+        })
+        console.error("Error deleting user:", error)
+      }
     })
-  }
+  }, [deleteUser, toast]);
 
-  const handleSubmit = async (data: Record<string, any>) => {
+  const handleSubmit = useCallback((data: Record<string, any>) => {
     console.log("Submitting user data:", data)
     
     if (editingUser) {
-      toast({
-        title: "Thành công",
-        description: `Đã cập nhật user ${editingUser.username} thành công`,
+      // Handle update user - only update fullname, email, and phone
+      const userData = {
+        fullname: data.fullname, // Send as fullname instead of username
+        email: data.email,
+        phone: data.phone || undefined,
+        role: 0  // Add default role field with value 0 for updates as well
+        // Password is intentionally excluded from updates
+      };
+      
+      // Since the API client expects Partial<InsertUser> type, we need to cast to any
+      // The server will handle mapping fullname to username
+      updateUser({ id: editingUser.id, data: userData as any }, {
+        onSuccess: (updatedUser) => {
+          toast({
+            title: "Thành công",
+            description: `Đã cập nhật user ${updatedUser.username} thành công`,
+          })
+          setIsFormOpen(false)
+        },
+        onError: (error: any) => {
+          console.error("Error updating user:", error)
+          let errorMessage = "Có lỗi xảy ra khi cập nhật user"
+          
+          // Handle API error messages
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message
+          } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error
+          }
+          
+          toast({
+            title: "Lỗi",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        }
       })
     } else {
-      toast({
-        title: "Thành công", 
-        description: `Đã tạo user ${data.username} thành công`,
+      // Handle create user - map form data to send fullname instead of username
+      const userData = {
+        fullname: data.fullname, // Send fullname instead of username
+        email: data.email,
+        phone: data.phone || undefined,
+        password: data.password,
+        role: 0  // Add default role field with value 0
+      };
+      
+      // Log the data being sent to verify role is included
+      console.log("Sending user data with role:", userData);
+      
+      // Since the API client expects InsertUser type, we need to cast to any
+      // In a real application, you would update the API or create a new endpoint
+      createUser(userData as any, {
+        onSuccess: (newUser) => {
+          toast({
+            title: "Thành công", 
+            description: `Đã tạo user ${newUser.username} thành công`,
+          })
+          setIsFormOpen(false)
+        },
+        onError: (error: any) => {
+          console.error("Error creating user:", error)
+          let errorMessage = "Có lỗi xảy ra khi tạo user"
+          
+          // Handle API error messages
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message
+          } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error
+          }
+          
+          toast({
+            title: "Lỗi",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        }
       })
     }
-    setIsFormOpen(false)
+  }, [editingUser, createUser, updateUser, toast, setIsFormOpen]);
+
+  const handleSearch = useCallback((keyword: string) => {
+    setSearchKeyword(keyword)
+  }, [])
+
+  // Show loading only on initial load, not on search
+  const showLoading = isLoading && !searchKeyword
+
+  if (showLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Đang tải dữ liệu user...</p>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
@@ -156,26 +269,21 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <DataTable
-        title="Quản lý User"
-        data={users}
+      <UsersDataTable
+        users={users}
         columns={columns}
-        onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        searchPlaceholder="Tìm kiếm user..."
-        searchKey="username"
+        handleAdd={handleAdd}
+        handleEdit={handleEdit}
+        handleDelete={handleDelete}
+        handleSearch={handleSearch}
       />
 
-      <EntityForm
-        title={editingUser ? "Chỉnh sửa User" : "Thêm User mới"}
-        description={editingUser ? "Cập nhật thông tin user" : "Tạo tài khoản user mới"}
-        fields={formFields}
-        initialData={editingUser || {}}
-        isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleSubmit}
-        isLoading={false}
+      <UsersEntityForm
+        editingUser={editingUser}
+        isFormOpen={isFormOpen}
+        setIsFormOpen={setIsFormOpen}
+        formFields={formFields}
+        handleSubmit={handleSubmit}
       />
     </div>
   )

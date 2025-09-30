@@ -62,7 +62,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users", async (req, res) => {
     try {
-      const validatedData = insertUserSchema.parse(req.body);
+      // Log incoming request data to verify role field is received
+      console.log("Received user creation data:", req.body);
+      
+      // Handle both username and fullname fields
+      const userData = { ...req.body };
+      if (userData.fullname && !userData.username) {
+        userData.username = userData.fullname;
+        delete userData.fullname;
+      }
+      
+      // Handle role field - convert integer to string if needed
+      if (typeof userData.role === 'number') {
+        // Convert numeric role to string representation
+        // 0 = 'user', 1 = 'admin', etc. (you can adjust this mapping as needed)
+        userData.role = userData.role === 0 ? 'user' : 'admin';
+      }
+      
+      // Log processed data
+      console.log("Processed user data:", userData);
+      
+      const validatedData = insertUserSchema.parse(userData);
       const user = await storage.createUser(validatedData);
       res.status(201).json(user);
     } catch (error) {
@@ -73,7 +93,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/users/:id", async (req, res) => {
     try {
-      const validatedData = insertUserSchema.partial().parse(req.body);
+      // Log incoming request data
+      console.log("Received user update data:", req.body);
+      
+      // Handle both username and fullname fields
+      const userData = { ...req.body };
+      if (userData.fullname && !userData.username) {
+        userData.username = userData.fullname;
+        delete userData.fullname;
+      }
+      
+      userData.role = 0;
+      
+      const validatedData = insertUserSchema.partial().parse(userData);
       const user = await storage.updateUser(req.params.id, validatedData);
       if (!user) {
         return res.status(404).json({ message: "User not found" });

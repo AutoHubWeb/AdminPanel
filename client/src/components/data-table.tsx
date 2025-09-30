@@ -37,6 +37,7 @@ interface DataTableProps<T> {
   onDelete?: (item: T) => void
   searchPlaceholder?: string
   searchKey?: keyof T
+  onSearch?: (keyword: string) => void
 }
 
 export function DataTable<T extends { id: string }>({
@@ -47,12 +48,20 @@ export function DataTable<T extends { id: string }>({
   onEdit,
   onDelete,
   searchPlaceholder = "Tìm kiếm...",
-  searchKey
+  searchKey,
+  onSearch
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
   const [deleteItem, setDeleteItem] = useState<T | null>(null)
 
-  const filteredData = search && searchKey 
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    if (onSearch) {
+      onSearch(value)
+    }
+  }
+
+  const filteredData = search && searchKey && !onSearch
     ? data.filter(item => 
         String(item[searchKey]).toLowerCase().includes(search.toLowerCase())
       )
@@ -88,7 +97,7 @@ export function DataTable<T extends { id: string }>({
           <Input
             placeholder={searchPlaceholder}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
             data-testid="input-search"
           />
