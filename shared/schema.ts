@@ -50,14 +50,20 @@ export const toolImages = pgTable("tool_images", {
 export const vps = pgTable("vps", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  ipAddress: text("ip_address").notNull(),
-  location: text("location").notNull(),
-  provider: text("provider").notNull(),
-  status: text("status").notNull().default('offline'),
-  cpu: integer("cpu").notNull(),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+  description: text("description"),
+  soldQuantity: integer("sold_quantity").default(0),
+  viewCount: integer("view_count").default(0),
+  status: integer("status").notNull().default(0),
   ram: integer("ram").notNull(),
-  storage: integer("storage").notNull(),
+  disk: integer("disk").notNull(),
+  cpu: integer("cpu").notNull(),
   bandwidth: integer("bandwidth").notNull(),
+  location: text("location"),
+  os: text("os"),
+  price: integer("price").notNull(),
+  // Note: tags are handled as a virtual field in the API response, not stored in DB
 });
 
 // Proxies table
@@ -85,6 +91,8 @@ export const insertToolSchema = createInsertSchema(tools).omit({
 
 export const insertVpsSchema = createInsertSchema(vps).omit({
   id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertProxySchema = createInsertSchema(proxies).omit({
@@ -97,6 +105,8 @@ export type User = typeof users.$inferSelect;
 export type InsertTool = z.infer<typeof insertToolSchema>;
 export type Tool = typeof tools.$inferSelect;
 export type InsertVps = z.infer<typeof insertVpsSchema>;
-export type Vps = typeof vps.$inferSelect;
+export type Vps = typeof vps.$inferSelect & {
+  tags?: string[];
+};
 export type InsertProxy = z.infer<typeof insertProxySchema>;
 export type Proxy = typeof proxies.$inferSelect;

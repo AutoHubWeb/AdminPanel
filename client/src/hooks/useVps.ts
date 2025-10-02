@@ -2,13 +2,78 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { vpsApi } from "@/lib/api";
 import type { Vps } from "@shared/schema";
 
+// Define the API response structure for list endpoint
+interface VpsListApiResponse {
+  statusCode: number;
+  data: {
+    items: ApiVps[];
+    meta: {
+      total: number;
+      page: number;
+    };
+  };
+  message: string;
+}
+
+// Define the API response structure for create/update endpoints
+interface VpsItemApiResponse {
+  statusCode: number;
+  data: ApiVps;
+  message: string;
+}
+
+// Define the complete VPS structure from the API
+interface ApiVps {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  description: string | null;
+  soldQuantity: number | null;
+  viewCount: number | null;
+  status: number;
+  ram: number;
+  disk: number;
+  cpu: number;
+  bandwidth: number;
+  location: string | null;
+  os: string | null;
+  price: number;
+  tags?: string[];
+}
+
+// Helper function to convert API VPS to DB VPS
+const mapApiVpsToVps = (item: ApiVps): Vps => ({
+  id: item.id,
+  name: item.name,
+  createdAt: new Date(item.createdAt),
+  updatedAt: new Date(item.updatedAt),
+  description: item.description,
+  soldQuantity: item.soldQuantity,
+  viewCount: item.viewCount,
+  status: item.status,
+  ram: item.ram,
+  disk: item.disk,
+  cpu: item.cpu,
+  bandwidth: item.bandwidth,
+  location: item.location,
+  os: item.os,
+  price: item.price,
+  tags: item.tags || []
+});
+
 // Fetch all VPS
 export function useVps() {
   return useQuery({
     queryKey: ["vps"],
     queryFn: async (): Promise<Vps[]> => {
       const response = await vpsApi.list();
-      return response.data.data || [];
+      const apiResponse = response.data as VpsListApiResponse;
+      
+      // Map API response to ensure all fields are properly typed
+      const vpsItems: Vps[] = apiResponse.data.items.map(mapApiVpsToVps);
+      
+      return vpsItems || [];
     },
   });
 }
@@ -20,7 +85,8 @@ export function useCreateVps() {
   return useMutation({
     mutationFn: async (vpsData: any): Promise<Vps> => {
       const response = await vpsApi.create(vpsData);
-      return response.data.data;
+      const apiResponse = response.data as VpsItemApiResponse;
+      return mapApiVpsToVps(apiResponse.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vps"] });
@@ -35,7 +101,8 @@ export function useUpdateVps() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }): Promise<Vps> => {
       const response = await vpsApi.update(id, data);
-      return response.data.data;
+      const apiResponse = response.data as VpsItemApiResponse;
+      return mapApiVpsToVps(apiResponse.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vps"] });
