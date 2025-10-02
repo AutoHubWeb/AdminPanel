@@ -1,112 +1,130 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+// Pure frontend TypeScript interfaces (no database dependencies)
 import { z } from "zod";
 
-// Users table
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull().unique(),
-  phone: text("phone"),
-  role: text("role").notNull().default('user'),
-  status: text("status").notNull().default('active'),
-  lastLogin: timestamp("last_login"),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
-});
+// User interface
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  status: string;
+  lastLogin: string | null;
+  createdAt: string;
+}
 
-// Tools table
-export const tools = pgTable("tools", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  code: text("code").notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  demo: text("demo"),
-  slug: text("slug").notNull(),
-  soldQuantity: integer("sold_quantity").default(0),
-  viewCount: integer("view_count").default(0),
-  status: integer("status").notNull().default(0),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
-});
+// Tool interface
+export interface Tool {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  demo: string | null;
+  slug: string;
+  soldQuantity: number;
+  viewCount: number;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Tool plans table
-export const toolPlans = pgTable("tool_plans", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  toolId: varchar("tool_id").notNull(),
-  name: text("name").notNull(),
-  price: integer("price").notNull(),
-  duration: integer("duration").notNull(), // -1 for permanent
-});
+// Tool plan interface
+export interface ToolPlan {
+  id: string;
+  toolId: string;
+  name: string;
+  price: number;
+  duration: number; // -1 for permanent
+}
 
-// Tool images table
-export const toolImages = pgTable("tool_images", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  toolId: varchar("tool_id").notNull(),
-  fileUrl: text("file_url").notNull(),
-});
+// Tool image interface
+export interface ToolImage {
+  id: string;
+  toolId: string;
+  fileUrl: string;
+}
 
-// VPS table
-export const vps = pgTable("vps", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
-  description: text("description"),
-  soldQuantity: integer("sold_quantity").default(0),
-  viewCount: integer("view_count").default(0),
-  status: integer("status").notNull().default(0),
-  ram: integer("ram").notNull(),
-  disk: integer("disk").notNull(),
-  cpu: integer("cpu").notNull(),
-  bandwidth: integer("bandwidth").notNull(),
-  location: text("location"),
-  os: text("os"),
-  price: integer("price").notNull(),
-  // Note: tags are handled as a virtual field in the API response, not stored in DB
-});
-
-// Proxies table
-export const proxies = pgTable("proxies", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  host: text("host").notNull(),
-  port: integer("port").notNull(),
-  type: text("type").notNull().default('http'),
-  location: text("location").notNull(),
-  status: text("status").notNull().default('offline'),
-  username: text("username"),
-  isAnonymous: boolean("is_anonymous").default(true),
-});
-
-// Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  lastLogin: true,
-});
-
-export const insertToolSchema = createInsertSchema(tools).omit({
-  id: true,
-});
-
-export const insertVpsSchema = createInsertSchema(vps).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertProxySchema = createInsertSchema(proxies).omit({
-  id: true,
-});
-
-// Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type InsertTool = z.infer<typeof insertToolSchema>;
-export type Tool = typeof tools.$inferSelect;
-export type InsertVps = z.infer<typeof insertVpsSchema>;
-export type Vps = typeof vps.$inferSelect & {
+// VPS interface
+export interface Vps {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  description: string | null;
+  soldQuantity: number | null;
+  viewCount: number | null;
+  status: number;
+  ram: number;
+  disk: number;
+  cpu: number;
+  bandwidth: number;
+  location: string | null;
+  os: string | null;
+  price: number;
   tags?: string[];
-};
-export type InsertProxy = z.infer<typeof insertProxySchema>;
-export type Proxy = typeof proxies.$inferSelect;
+}
+
+// Proxy interface
+export interface Proxy {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  type: string;
+  location: string;
+  status: string;
+  username: string | null;
+  isAnonymous: boolean;
+}
+
+// Insert types for forms
+export type InsertUser = Omit<User, 'id' | 'lastLogin' | 'createdAt'>;
+export type InsertTool = Omit<Tool, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertVps = Omit<Vps, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertProxy = Omit<Proxy, 'id'>;
+
+// Zod schemas for validation (simplified for frontend use)
+export const insertUserSchema = z.object({
+  username: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().nullable(),
+  role: z.string(),
+  status: z.string()
+});
+
+export const insertToolSchema = z.object({
+  code: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().nullable(),
+  demo: z.string().nullable(),
+  slug: z.string().min(1),
+  soldQuantity: z.number(),
+  viewCount: z.number(),
+  status: z.number()
+});
+
+export const insertVpsSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().nullable(),
+  soldQuantity: z.number().nullable(),
+  viewCount: z.number().nullable(),
+  status: z.number(),
+  ram: z.number(),
+  disk: z.number(),
+  cpu: z.number(),
+  bandwidth: z.number(),
+  location: z.string().nullable(),
+  os: z.string().nullable(),
+  price: z.number()
+});
+
+export const insertProxySchema = z.object({
+  name: z.string().min(1),
+  host: z.string().min(1),
+  port: z.number(),
+  type: z.string(),
+  location: z.string(),
+  status: z.string(),
+  username: z.string().nullable(),
+  isAnonymous: z.boolean()
+});
