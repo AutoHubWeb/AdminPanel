@@ -56,11 +56,15 @@ export function DataTable<T extends { id: string }>({
 
   const handleSearchChange = (value: string) => {
     setSearch(value)
+    // If onSearch is provided, let the parent component handle the search
+    // Otherwise, do client-side filtering
     if (onSearch) {
       onSearch(value)
     }
   }
 
+  // If onSearch is provided, show all data (server-side filtering)
+  // Otherwise, filter data locally (client-side filtering)
   const filteredData = search && searchKey && !onSearch
     ? data.filter(item => 
         String(item[searchKey]).toLowerCase().includes(search.toLowerCase())

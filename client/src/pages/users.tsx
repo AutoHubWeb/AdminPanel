@@ -241,6 +241,7 @@ export default function UsersPage() {
   }, [editingUser, createUser, updateUser, toast, setIsFormOpen]);
 
   const handleSearch = useCallback((keyword: string) => {
+    console.log("Search keyword:", keyword);
     setSearchKeyword(keyword)
   }, [])
 

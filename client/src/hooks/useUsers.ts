@@ -61,10 +61,13 @@ export function useUsers(keyword?: string) {
     queryKey: ["users", keyword],
     queryFn: async (): Promise<User[]> => {
       try {
+        console.log("Fetching users with keyword:", keyword);
         const response = await userApi.list({ keyword });
+        console.log("API Response:", response);
         const apiResponse = response.data as UsersResponse;
         
         if (apiResponse.statusCode === 200 && apiResponse.data?.items) {
+          console.log("Returning users:", apiResponse.data.items);
           return apiResponse.data.items.map(transformApiUserToUser);
         }
         
