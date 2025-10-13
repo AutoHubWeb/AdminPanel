@@ -20,6 +20,21 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Response interceptor to handle common response structures
+apiClient.interceptors.response.use(
+  (response) => {
+    // If response.data is an object with a data property, return that
+    if (response.data && response.data.data) {
+      return { ...response, data: response.data.data };
+    }
+    return response;
+  },
+  (error) => {
+    console.error("API Error:", error);
+    return Promise.reject(error);
+  }
+);
+
 // Auth APIs
 export const authApi = {
   login: (email: string, password: string) => 
@@ -99,6 +114,13 @@ export const proxyApi = {
   active: (id: string) => apiClient.put(`/proxies/${id}/active`),
   pause: (id: string) => apiClient.put(`/proxies/${id}/pause`),
   delete: (id: string) => apiClient.delete(`/proxies/${id}`),
+};
+
+// Transaction APIs
+export const transactionApi = {
+  list: (params?: { keyword?: string }) => apiClient.get("/transactions", { params }),
+  listUser: () => apiClient.get("/transactions/me"),
+  topUp: () => apiClient.get("/transactions/top-up"),
 };
 
 export default apiClient;

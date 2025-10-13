@@ -5,7 +5,8 @@ import {
   Shield, 
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  CreditCard
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 
@@ -21,6 +22,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/context/AuthContext"
 
 // Menu items
 const items = [
@@ -50,6 +52,11 @@ const items = [
     icon: Shield,
   },
   {
+    title: "Giao dịch",
+    url: "/transactions",
+    icon: CreditCard,
+  },
+  {
     title: "Cài đặt",
     url: "/settings",
     icon: Settings,
@@ -58,6 +65,7 @@ const items = [
 
 export function AppSidebar() {
   const [location] = useLocation()
+  const { logout } = useAuth()
 
   return (
     <Sidebar>
@@ -83,7 +91,12 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Button variant="ghost" className="w-full justify-start" data-testid="button-logout">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start" 
+              data-testid="button-logout"
+              onClick={logout}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Đăng xuất
             </Button>

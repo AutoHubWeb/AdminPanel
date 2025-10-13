@@ -8,14 +8,25 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import Dashboard from "@/pages/dashboard";
-import UsersPage from "@/pages/users";
-import ToolsPage from "@/pages/tools";
-import VpsPage from "@/pages/vps";
-import ProxiesPage from "@/pages/proxies";
-import SettingsPage from "@/pages/settings";
-import NotFound from "@/pages/not-found";
-import LoginPage from "@/pages/login";
+import { lazy, Suspense } from "react";
+
+// Lazy load pages for better performance
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const UsersPage = lazy(() => import("@/pages/users"));
+const ToolsPage = lazy(() => import("@/pages/tools"));
+const VpsPage = lazy(() => import("@/pages/vps"));
+const ProxiesPage = lazy(() => import("@/pages/proxies"));
+const TransactionsPage = lazy(() => import("@/pages/transactions"));
+const SettingsPage = lazy(() => import("@/pages/settings"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const LoginPage = lazy(() => import("@/pages/login"));
+
+// Loading component for suspense
+const LoadingComponent = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="text-muted-foreground">Đang tải...</div>
+  </div>
+);
 
 function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -46,15 +57,18 @@ function DashboardLayout() {
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
-            <Switch>
-              <Route path="/" component={Dashboard} />
-              <Route path="/users" component={UsersPage} />
-              <Route path="/tools" component={ToolsPage} />
-              <Route path="/vps" component={VpsPage} />
-              <Route path="/proxies" component={ProxiesPage} />
-              <Route path="/settings" component={SettingsPage} />
-              <Route component={NotFound} />
-            </Switch>
+            <Suspense fallback={<LoadingComponent />}>
+              <Switch>
+                <Route path="/" component={Dashboard} />
+                <Route path="/users" component={UsersPage} />
+                <Route path="/tools" component={ToolsPage} />
+                <Route path="/vps" component={VpsPage} />
+                <Route path="/proxies" component={ProxiesPage} />
+                <Route path="/transactions" component={TransactionsPage} />
+                <Route path="/settings" component={SettingsPage} />
+                <Route component={NotFound} />
+              </Switch>
+            </Suspense>
           </main>
         </div>
       </div>
@@ -65,7 +79,11 @@ function DashboardLayout() {
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={LoginPage} />
+      <Route path="/login">
+        <Suspense fallback={<LoadingComponent />}>
+          <LoginPage />
+        </Suspense>
+      </Route>
       <Route>
         <ProtectedRoute>
           <DashboardLayout />

@@ -65,11 +65,11 @@ export function DataTable<T extends { id: string }>({
 
   // If onSearch is provided, show all data (server-side filtering)
   // Otherwise, filter data locally (client-side filtering)
-  const filteredData = search && searchKey && !onSearch
+  const filteredData = search && searchKey && !onSearch && Array.isArray(data)
     ? data.filter(item => 
         String(item[searchKey]).toLowerCase().includes(search.toLowerCase())
       )
-    : data
+    : Array.isArray(data) ? data : []
 
   const handleDelete = (item: T) => {
     setDeleteItem(item)

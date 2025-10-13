@@ -77,6 +77,27 @@ export interface Proxy {
   isAnonymous: boolean;
 }
 
+// Transaction interface - updated to match actual API response
+export interface Transaction {
+  id: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  action: string;
+  note: string;
+  user: {
+    id: string;
+    fullname: string;
+    email: string;
+    code: string;
+  };
+  // Add optional fields that might be in the API response
+  [key: string]: any; // Allow for additional fields
+}
+
 // Insert types for forms
 export type InsertUser = Omit<User, 'id' | 'lastLogin' | 'createdAt'>;
 export type InsertTool = Omit<Tool, 'id' | 'createdAt' | 'updatedAt'>;
