@@ -51,6 +51,11 @@ export function DataTable<T extends { id: string }>({
   searchKey,
   onSearch
 }: DataTableProps<T>) {
+  // Add debugging
+  console.log(`DataTable ${title}:`, data);
+  console.log(`DataTable ${title} - Is Array:`, Array.isArray(data));
+  console.log(`DataTable ${title} - Length:`, data?.length);
+
   const [search, setSearch] = useState("")
   const [deleteItem, setDeleteItem] = useState<T | null>(null)
 
@@ -70,6 +75,8 @@ export function DataTable<T extends { id: string }>({
         String(item[searchKey]).toLowerCase().includes(search.toLowerCase())
       )
     : Array.isArray(data) ? data : []
+  
+  console.log("Filtered data:", filteredData)
 
   const handleDelete = (item: T) => {
     setDeleteItem(item)

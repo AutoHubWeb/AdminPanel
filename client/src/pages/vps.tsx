@@ -50,6 +50,12 @@ export default function VpsPage() {
   const { toast } = useToast()
   
   const { data: vpsList = [], isLoading, error } = useVps()
+  
+  // Add debugging
+  console.log("VPS List:", vpsList);
+  console.log("Is Array:", Array.isArray(vpsList));
+  console.log("Length:", vpsList.length);
+
   const createVpsMutation = useCreateVps()
   const updateVpsMutation = useUpdateVps()
   const deleteVpsMutation = useDeleteVps()
@@ -271,7 +277,14 @@ export default function VpsPage() {
   }
 
   if (error) {
-    return <div>Có lỗi xảy ra khi tải dữ liệu: {(error as Error).message}</div>
+    console.error("VPS Page Error:", error);
+    return (
+      <div>
+        <h2>Có lỗi xảy ra khi tải dữ liệu</h2>
+        <p>Error: {(error as Error).message}</p>
+        <p>Vui lòng kiểm tra console để biết thêm chi tiết.</p>
+      </div>
+    )
   }
 
   return (

@@ -123,4 +123,11 @@ export const transactionApi = {
   topUp: () => apiClient.get("/transactions/top-up"),
 };
 
+// Dashboard APIs
+export const dashboardApi = {
+  getSummary: () => apiClient.get("/dashboards/summary"),
+  getUserSummary: (year: number) => apiClient.get(`/dashboards/summary-user?year=${year}`),
+  getRevenueSummary: (year: number) => apiClient.get(`/dashboards/summary-revenue?year=${year}`),
+};
+
 export default apiClient;

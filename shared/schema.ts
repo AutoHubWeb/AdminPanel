@@ -98,6 +98,30 @@ export interface Transaction {
   [key: string]: any; // Allow for additional fields
 }
 
+// Dashboard interfaces
+export interface DashboardSummary {
+  totalUser: number;
+  totalTool: number;
+  totalVps: number;
+  totalProxy: number;
+}
+
+export interface DashboardUserSummary {
+  year: number;
+  timelines: {
+    month: number;
+    total: number;
+  }[];
+}
+
+export interface DashboardRevenueSummary {
+  year: number;
+  timelines: {
+    month: number;
+    total: number;
+  }[];
+}
+
 // Insert types for forms
 export type InsertUser = Omit<User, 'id' | 'lastLogin' | 'createdAt'>;
 export type InsertTool = Omit<Tool, 'id' | 'createdAt' | 'updatedAt'>;

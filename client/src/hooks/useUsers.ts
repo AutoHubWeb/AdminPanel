@@ -39,7 +39,7 @@ const transformApiUserToUser = (apiUser: UserApiResponse): User => {
       role: 'user',
       status: 'active',
       lastLogin: null,
-      createdAt: new Date(),
+      createdAt: '', // Should be string, not Date
     };
   }
   
@@ -51,7 +51,7 @@ const transformApiUserToUser = (apiUser: UserApiResponse): User => {
     role: apiUser.role === 0 ? 'user' : 'admin',
     status: apiUser.isLocked === 0 ? 'active' : 'inactive',
     lastLogin: null, // API doesn't provide lastLogin in this response
-    createdAt: new Date(apiUser.createdAt),
+    createdAt: apiUser.createdAt, // Keep as string
   };
 };
 
@@ -64,14 +64,12 @@ export function useUsers(keyword?: string) {
         console.log("Fetching users with keyword:", keyword);
         const response = await userApi.list({ keyword });
         console.log("API Response:", response);
-        const apiResponse = response.data as UsersResponse;
         
-        if (apiResponse.statusCode === 200 && apiResponse.data?.items) {
-          console.log("Returning users:", apiResponse.data.items);
-          return apiResponse.data.items.map(transformApiUserToUser);
-        }
+        // Access the items directly from response.data.items
+        const userItems = response.data?.items || [];
         
-        return [];
+        console.log("Returning users:", userItems);
+        return userItems.map(transformApiUserToUser);
       } catch (error) {
         console.error("Error fetching users:", error);
         return [];

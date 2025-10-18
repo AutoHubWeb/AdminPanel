@@ -46,8 +46,8 @@ interface ApiVps {
 const mapApiVpsToVps = (item: ApiVps): Vps => ({
   id: item.id,
   name: item.name,
-  createdAt: new Date(item.createdAt),
-  updatedAt: new Date(item.updatedAt),
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
   description: item.description,
   soldQuantity: item.soldQuantity,
   viewCount: item.viewCount,
@@ -67,13 +67,22 @@ export function useVps() {
   return useQuery({
     queryKey: ["vps"],
     queryFn: async (): Promise<Vps[]> => {
-      const response = await vpsApi.list();
-      const apiResponse = response.data as VpsListApiResponse;
-      
-      // Map API response to ensure all fields are properly typed
-      const vpsItems: Vps[] = apiResponse.data.items.map(mapApiVpsToVps);
-      
-      return vpsItems || [];
+      try {
+        const response = await vpsApi.list();
+        console.log("VPS API Response:", response);
+        
+        // Access the items directly from response.data.items
+        const vpsItems = response.data?.items || [];
+        
+        // Map API response to ensure all fields are properly typed
+        const mappedVpsItems: Vps[] = vpsItems.map(mapApiVpsToVps);
+        
+        console.log("Mapped VPS Items:", mappedVpsItems);
+        return mappedVpsItems;
+      } catch (error) {
+        console.error("Error fetching VPS data:", error);
+        throw error;
+      }
     },
   });
 }
