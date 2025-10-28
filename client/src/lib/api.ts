@@ -107,13 +107,13 @@ export const vpsApi = {
 
 // Proxy APIs
 export const proxyApi = {
-  create: (data: any) => apiClient.post("/proxies", data),
-  list: () => apiClient.get("/proxies"),
-  detail: (id: string) => apiClient.get(`/proxies/${id}`),
-  update: (id: string, data: any) => apiClient.put(`/proxies/${id}`, data),
-  active: (id: string) => apiClient.put(`/proxies/${id}/active`),
-  pause: (id: string) => apiClient.put(`/proxies/${id}/pause`),
-  delete: (id: string) => apiClient.delete(`/proxies/${id}`),
+  create: (data: any) => apiClient.post("/proxy", data),
+  list: () => apiClient.get("/proxy"),
+  detail: (id: string) => apiClient.get(`/proxy/${id}`),
+  update: (id: string, data: any) => apiClient.put(`/proxy/${id}`, data),
+  active: (id: string) => apiClient.put(`/proxy/${id}/active`),
+  pause: (id: string) => apiClient.put(`/proxy/${id}/pause`),
+  delete: (id: string) => apiClient.delete(`/proxy/${id}`),
 };
 
 // Transaction APIs

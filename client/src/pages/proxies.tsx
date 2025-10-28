@@ -1,142 +1,86 @@
 import { useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { EntityForm } from "@/components/entity-form"
+import { ProxyDetailModal } from "@/components/proxy-detail-modal"
 import { StatusBadge } from "@/components/status-badge"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle } from "lucide-react"
 import type { Proxy } from "@shared/schema"
+import { useProxies, useCreateProxy, useUpdateProxy, useDeleteProxy } from "@/hooks/useProxies"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ProxiesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [selectedProxyId, setSelectedProxyId] = useState<string | null>(null)
   const [editingProxy, setEditingProxy] = useState<Proxy | null>(null)
-
-  // todo: remove mock data
-  const mockProxies: Proxy[] = [
-    {
-      id: "1",
-      name: "Proxy-US-01",
-      host: "proxy1.example.com",
-      port: 8080,
-      type: "http",
-      location: "USA",
-      status: "online",
-      username: "user1",
-      isAnonymous: true
-    },
-    {
-      id: "2",
-      name: "Proxy-SG-01",
-      host: "proxy2.example.com", 
-      port: 3128,
-      type: "https",
-      location: "Singapore",
-      status: "online",
-      username: "user2",
-      isAnonymous: false
-    },
-    {
-      id: "3",
-      name: "Proxy-EU-01",
-      host: "proxy3.example.com",
-      port: 1080,
-      type: "socks5",
-      location: "Germany",
-      status: "offline",
-      username: null,
-      isAnonymous: true
-    }
-  ]
+  const { toast } = useToast()
+  
+  const { data: proxies = [], isLoading, error } = useProxies()
+  const createProxyMutation = useCreateProxy()
+  const updateProxyMutation = useUpdateProxy()
+  const deleteProxyMutation = useDeleteProxy()
 
   const columns = [
     { header: "Tên Proxy", accessor: "name" as keyof Proxy },
     { 
-      header: "Địa chỉ",
+      header: "Mô tả",
       accessor: (proxy: Proxy) => (
-        <div className="font-mono text-sm">
-          {proxy.host}:{proxy.port}
+        <div className="max-w-xs truncate" title={proxy.description || ""}>
+          {proxy.description || "N/A"}
         </div>
       )
     },
     { 
-      header: "Loại", 
-      accessor: (proxy: Proxy) => (
-        <Badge variant="outline" className="uppercase">{proxy.type}</Badge>
-      )
+      header: "Giá",
+      accessor: (proxy: Proxy) => {
+        // Format price as VND currency
+        return new Intl.NumberFormat('vi-VN', {
+          style: 'currency',
+          currency: 'VND'
+        }).format(proxy.price || 0);
+      }
     },
     { 
-      header: "Vị trí", 
-      accessor: (proxy: Proxy) => (
-        <Badge variant="outline">{proxy.location}</Badge>
-      )
+      header: "Tồn kho",
+      accessor: (proxy: Proxy) => proxy.inventory || 0
+    },
+    { 
+      header: "Đã bán",
+      accessor: (proxy: Proxy) => proxy.soldQuantity || 0
     },
     { 
       header: "Trạng thái", 
-      accessor: (proxy: Proxy) => <StatusBadge status={proxy.status} />
+      accessor: (proxy: Proxy) => {
+        // Convert numeric status to string for StatusBadge
+        const statusMap: Record<number, string> = {
+          0: "inactive",
+          1: "active"
+        };
+        return <StatusBadge status={statusMap[proxy.status] || "unknown"} />
+      }
     },
     { 
-      header: "Ẩn danh",
-      accessor: (proxy: Proxy) => (
-        <div className="flex items-center">
-          {proxy.isAnonymous ? (
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          ) : (
-            <XCircle className="h-4 w-4 text-red-600" />
-          )}
-        </div>
-      )
-    },
-    { 
-      header: "Username",
-      accessor: (proxy: Proxy) => proxy.username || (
-        <span className="text-muted-foreground">Không có</span>
-      )
+      header: "Ngày tạo",
+      accessor: (proxy: Proxy) => {
+        if (!proxy.createdAt) return "N/A";
+        return new Date(proxy.createdAt).toLocaleDateString('vi-VN');
+      }
     }
   ]
 
   const formFields = [
     { name: "name", label: "Tên Proxy", type: "text" as const, required: true },
-    { name: "host", label: "Host", type: "text" as const, required: true },
-    { name: "port", label: "Port", type: "number" as const, required: true },
+    { name: "description", label: "Mô tả", type: "textarea" as const },
+    { name: "price", label: "Giá (VND)", type: "number" as const, required: true },
+    { name: "inventory", label: "Tồn kho", type: "number" as const, required: true },
     { 
-      name: "type", 
-      label: "Loại Proxy", 
-      type: "select" as const,
-      options: [
-        { value: "http", label: "HTTP" },
-        { value: "https", label: "HTTPS" },
-        { value: "socks4", label: "SOCKS4" },
-        { value: "socks5", label: "SOCKS5" }
-      ]
-    },
-    { 
-      name: "location", 
-      label: "Vị trí", 
-      type: "select" as const,
-      options: [
-        { value: "USA", label: "USA" },
-        { value: "Singapore", label: "Singapore" },
-        { value: "Germany", label: "Germany" },
-        { value: "Japan", label: "Japan" },
-        { value: "Vietnam", label: "Vietnam" }
-      ]
-    },
-    {
-      name: "status",
+      name: "status", 
       label: "Trạng thái", 
       type: "select" as const,
       options: [
-        { value: "online", label: "Online" },
-        { value: "offline", label: "Offline" }
-      ]
-    },
-    { name: "username", label: "Username", type: "text" as const },
-    {
-      name: "isAnonymous",
-      label: "Ẩn danh",
-      type: "select" as const,
-      options: [
-        { value: "true", label: "Có" },
-        { value: "false", label: "Không" }
+        { value: "0", label: "Inactive" },
+        { value: "1", label: "Active" }
       ]
     }
   ]
@@ -147,39 +91,127 @@ export default function ProxiesPage() {
   }
 
   const handleEdit = (proxy: Proxy) => {
-    setEditingProxy({
+    // Transform proxy data for the form
+    const formData = {
       ...proxy,
-      isAnonymous: proxy.isAnonymous ? "true" : "false"
-    } as any)
+      status: String(proxy.status)
+    };
+    setEditingProxy(formData as any)
     setIsFormOpen(true)
   }
 
+  const handleViewDetail = (proxy: Proxy) => {
+    setSelectedProxyId(proxy.id)
+    setIsDetailOpen(true)
+  }
+
   const handleDelete = (proxy: Proxy) => {
-    console.log("Deleting proxy:", proxy)
+    deleteProxyMutation.mutate(proxy.id, {
+      onSuccess: () => {
+        toast({
+          title: "Thành công",
+          description: `Đã xóa proxy ${proxy.name} thành công`,
+        })
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Lỗi",
+          description: `Có lỗi xảy ra khi xóa proxy ${proxy.name}`,
+          variant: "destructive",
+        })
+        console.error("Error deleting proxy:", error)
+      }
+    })
   }
 
   const handleSubmit = (data: Record<string, any>) => {
+    // Transform form data to match API expectations
     const submitData = {
-      ...data,
-      port: parseInt(data.port),
-      isAnonymous: data.isAnonymous === "true"
+      name: data.name,
+      description: data.description,
+      inventory: Number(data.inventory),
+      price: Number(data.price),
+      status: Number(data.status)
     }
     
     if (editingProxy) {
-      console.log("Updating proxy:", editingProxy.id, submitData)
+      updateProxyMutation.mutate({ id: editingProxy.id, data: submitData }, {
+        onSuccess: (updatedProxy) => {
+          toast({
+            title: "Thành công",
+            description: `Đã cập nhật proxy ${updatedProxy.name} thành công`,
+          })
+          setIsFormOpen(false)
+        },
+        onError: (error: any) => {
+          console.error("Error updating proxy:", error)
+          let errorMessage = "Có lỗi xảy ra khi cập nhật proxy"
+          
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message
+          } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error
+          }
+          
+          toast({
+            title: "Lỗi",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        }
+      })
     } else {
-      console.log("Creating proxy:", submitData)
+      createProxyMutation.mutate(submitData, {
+        onSuccess: (newProxy) => {
+          toast({
+            title: "Thành công", 
+            description: `Đã tạo proxy ${newProxy.name} thành công`,
+          })
+          setIsFormOpen(false)
+        },
+        onError: (error: any) => {
+          console.error("Error creating proxy:", error)
+          let errorMessage = "Có lỗi xảy ra khi tạo proxy"
+          
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message
+          } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error
+          }
+          
+          toast({
+            title: "Lỗi",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        }
+      })
     }
+  }
+
+  if (isLoading) {
+    return <div>Đang tải dữ liệu...</div>
+  }
+
+  if (error) {
+    console.error("Proxies Page Error:", error);
+    return (
+      <div>
+        <h2>Có lỗi xảy ra khi tải dữ liệu</h2>
+        <p>Error: {(error as Error).message}</p>
+        <p>Vui lòng kiểm tra console để biết thêm chi tiết.</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <DataTable
         title="Quản lý Proxy"
-        data={mockProxies}
+        data={proxies}
         columns={columns}
         onAdd={handleAdd}
-        onEdit={handleEdit}
+        onEdit={handleViewDetail}
         onDelete={handleDelete}
         searchPlaceholder="Tìm kiếm proxy..."
         searchKey="name"
@@ -193,6 +225,18 @@ export default function ProxiesPage() {
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={handleSubmit}
+      />
+
+      <ProxyDetailModal
+        proxyId={selectedProxyId}
+        isOpen={isDetailOpen}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open)
+          if (!open) {
+            setSelectedProxyId(null)
+          }
+        }}
+        onEdit={handleEdit}
       />
     </div>
   )

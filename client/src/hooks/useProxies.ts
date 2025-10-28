@@ -8,8 +8,30 @@ export function useProxies() {
     queryKey: ["proxies"],
     queryFn: async (): Promise<Proxy[]> => {
       const response = await proxyApi.list();
-      return response.data.data || [];
+      // Handle the correct API response structure
+      if (response.data && response.data.items) {
+        return response.data.items;
+      }
+      return response.data || [];
     },
+  });
+}
+
+// Fetch a single proxy by ID
+export function useProxy(id: string) {
+  return useQuery({
+    queryKey: ["proxy", id],
+    queryFn: async (): Promise<Proxy> => {
+      const response = await proxyApi.detail(id);
+      // Handle the correct API response structure
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      return response.data;
+    },
+    enabled: !!id,
+    staleTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data (cacheTime was renamed to gcTime in newer versions)
   });
 }
 
@@ -20,7 +42,11 @@ export function useCreateProxy() {
   return useMutation({
     mutationFn: async (proxyData: any): Promise<Proxy> => {
       const response = await proxyApi.create(proxyData);
-      return response.data.data;
+      // Handle the correct API response structure
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });
@@ -35,7 +61,11 @@ export function useUpdateProxy() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }): Promise<Proxy> => {
       const response = await proxyApi.update(id, data);
-      return response.data.data;
+      // Handle the correct API response structure
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });

@@ -68,13 +68,15 @@ export interface Vps {
 export interface Proxy {
   id: string;
   name: string;
-  host: string;
-  port: number;
-  type: string;
-  location: string;
-  status: string;
-  username: string | null;
-  isAnonymous: boolean;
+  createdAt: string;
+  updatedAt: string;
+  description: string;
+  soldQuantity: number;
+  viewCount: number;
+  status: number;
+  inventory: number;
+  price: number;
+  [key: string]: any; // Allow for additional fields
 }
 
 // Transaction interface - updated to match actual API response
@@ -126,7 +128,7 @@ export interface DashboardRevenueSummary {
 export type InsertUser = Omit<User, 'id' | 'lastLogin' | 'createdAt'>;
 export type InsertTool = Omit<Tool, 'id' | 'createdAt' | 'updatedAt'>;
 export type InsertVps = Omit<Vps, 'id' | 'createdAt' | 'updatedAt'>;
-export type InsertProxy = Omit<Proxy, 'id'>;
+export type InsertProxy = Omit<Proxy, 'id' | 'createdAt' | 'updatedAt'>;
 
 // Zod schemas for validation (simplified for frontend use)
 export const insertUserSchema = z.object({
@@ -165,11 +167,8 @@ export const insertVpsSchema = z.object({
 
 export const insertProxySchema = z.object({
   name: z.string().min(1),
-  host: z.string().min(1),
-  port: z.number(),
-  type: z.string(),
-  location: z.string(),
-  status: z.string(),
-  username: z.string().nullable(),
-  isAnonymous: z.boolean()
+  description: z.string(),
+  price: z.number(),
+  inventory: z.number(),
+  status: z.number()
 });
