@@ -8,6 +8,7 @@ import { ExternalLink, Eye, TrendingUp, DollarSign } from "lucide-react"
 import type { Tool } from "@shared/schema"
 import { useTools, useCreateTool, useUpdateTool, useDeleteTool } from "@/hooks/useTools"
 import { useToast } from "@/hooks/use-toast"
+import { toolApi } from "@/lib/api"
 
 // Extended Tool type to include API response fields
 interface ExtendedTool extends Tool {
@@ -25,6 +26,7 @@ interface ExtendedTool extends Tool {
 export default function ToolsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingTool, setEditingTool] = useState<ExtendedTool | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
   const { toast } = useToast()
   
   const { data: tools = [], isLoading, error } = useTools()
@@ -112,9 +114,37 @@ export default function ToolsPage() {
     setIsFormOpen(true)
   }
 
-  const handleEdit = (tool: ExtendedTool) => {
-    setEditingTool(tool)
-    setIsFormOpen(true)
+  const handleEdit = async (tool: ExtendedTool) => {
+    setLoadingDetail(true)
+    try {
+      // Fetch detailed tool data from API
+      const response = await toolApi.detail(tool.id)
+      console.log("Tool detail response:", response)
+      
+      // Handle the response structure
+      let toolDetail: ExtendedTool;
+      if (response.data && response.data.data) {
+        // New structure with data wrapper
+        toolDetail = response.data.data
+      } else if (response.data && response.data.id) {
+        // Old structure directly
+        toolDetail = response.data
+      } else {
+        throw new Error("Unexpected response structure")
+      }
+      
+      setEditingTool(toolDetail)
+      setIsFormOpen(true)
+    } catch (error) {
+      console.error("Error fetching tool detail:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin chi tiết tool",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingDetail(false)
+    }
   }
 
   const handleDelete = (tool: ExtendedTool) => {
@@ -246,6 +276,7 @@ export default function ToolsPage() {
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={handleSubmit}
+        isLoading={loadingDetail}
       />
     </div>
   )

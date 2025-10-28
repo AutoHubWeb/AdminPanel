@@ -63,8 +63,8 @@ const transformApiToolToTool = (apiTool: ToolApiResponse): ExtendedTool => {
     soldQuantity: apiTool.soldQuantity,
     viewCount: apiTool.viewCount,
     status: apiTool.status,
-    createdAt: new Date(apiTool.createdAt),
-    updatedAt: new Date(apiTool.updatedAt),
+    createdAt: apiTool.createdAt,
+    updatedAt: apiTool.updatedAt,
     images: apiTool.images,
     plans: apiTool.plans,
   };
@@ -79,8 +79,15 @@ export function useTools() {
         console.log("Fetching tools");
         const response = await toolApi.list();
         console.log("API Response:", response);
-        const apiResponse = response.data as ToolsResponse;
         
+        // Handle the response structure after axios interceptor
+        if (response.data && Array.isArray(response.data.items)) {
+          console.log("Returning tools:", response.data.items);
+          return response.data.items.map(transformApiToolToTool);
+        }
+        
+        // Fallback for direct API response structure
+        const apiResponse = response.data as ToolsResponse;
         if (apiResponse.statusCode === 200 && apiResponse.data?.items) {
           console.log("Returning tools:", apiResponse.data.items);
           return apiResponse.data.items.map(transformApiToolToTool);
@@ -108,7 +115,23 @@ export function useCreateTool() {
       console.log("Creating tool with data:", toolData);
       const response = await toolApi.create(toolData);
       console.log("Create tool response:", response);
-      const apiTool = response.data.data as ToolApiResponse;
+      
+      // Handle different possible response structures
+      let apiTool: ToolApiResponse;
+      
+      // If response.data.data exists (new structure)
+      if (response.data && response.data.data) {
+        apiTool = response.data.data as ToolApiResponse;
+      } 
+      // If response.data is the tool object directly (old structure)
+      else if (response.data && response.data.id) {
+        apiTool = response.data as ToolApiResponse;
+      } 
+      // Fallback
+      else {
+        throw new Error("Unexpected response structure from create tool API");
+      }
+      
       return transformApiToolToTool(apiTool);
     },
     onSuccess: () => {
@@ -126,7 +149,23 @@ export function useUpdateTool() {
       console.log("Updating tool with data:", id, data);
       const response = await toolApi.update(id, data);
       console.log("Update tool response:", response);
-      const apiTool = response.data.data as ToolApiResponse;
+      
+      // Handle different possible response structures
+      let apiTool: ToolApiResponse;
+      
+      // If response.data.data exists (new structure)
+      if (response.data && response.data.data) {
+        apiTool = response.data.data as ToolApiResponse;
+      } 
+      // If response.data is the tool object directly (old structure)
+      else if (response.data && response.data.id) {
+        apiTool = response.data as ToolApiResponse;
+      } 
+      // Fallback
+      else {
+        throw new Error("Unexpected response structure from update tool API");
+      }
+      
       return transformApiToolToTool(apiTool);
     },
     onSuccess: () => {
