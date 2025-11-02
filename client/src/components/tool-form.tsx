@@ -69,7 +69,6 @@ export function ToolForm({
     description: "",
     demo: "",
     linkDownload: "",
-    status: "1",
     images: [] as UploadedImage[], // Store uploaded images with IDs and URLs
     plans: [] as Plan[],
     ...initialData
@@ -93,7 +92,6 @@ export function ToolForm({
       description: initialData.description || "",
       demo: initialData.demo || "",
       linkDownload: initialData.linkDownload || "",
-      status: initialData.status?.toString() || "1",
       images: initialImages,
       plans: initialData.plans || [],
       ...initialData
@@ -110,7 +108,6 @@ export function ToolForm({
       description: formData.description,
       demo: formData.demo,
       linkDownload: formData.linkDownload,
-      status: parseInt(formData.status),
       imageIds: formData.images.map((img: { id: string; fileUrl: string; fileName: string }) => img.id), // Send file IDs in imageIds field
       plans: formData.plans.map((plan: Plan) => ({
         name: plan.name,
@@ -469,31 +466,7 @@ export function ToolForm({
                 </CardContent>
               </Card>
 
-              {/* Status Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Info className="w-5 h-5 text-primary" />
-                    Trạng thái
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) => handleInputChange("status", value)}
-                    >
-                      <SelectTrigger data-testid="select-status">
-                        <SelectValue placeholder="Chọn trạng thái" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Hoạt động</SelectItem>
-                        <SelectItem value="0">Không hoạt động</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
+
             </div>
             
             <DialogFooter className="gap-2 sm:space-x-0">

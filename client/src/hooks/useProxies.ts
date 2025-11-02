@@ -86,3 +86,31 @@ export function useDeleteProxy() {
     },
   });
 }
+
+// Activate a proxy
+export function useActivateProxy() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await proxyApi.active(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    },
+  });
+}
+
+// Pause a proxy
+export function usePauseProxy() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await proxyApi.pause(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proxies"] });
+    },
+  });
+}

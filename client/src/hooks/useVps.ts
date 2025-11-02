@@ -110,8 +110,8 @@ export function useUpdateVps() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }): Promise<Vps> => {
       const response = await vpsApi.update(id, data);
-      const apiResponse = response.data as VpsItemApiResponse;
-      return mapApiVpsToVps(apiResponse.data);
+      // The axios interceptor already extracts the data field, so we can use it directly
+      return mapApiVpsToVps(response.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vps"] });

@@ -6,9 +6,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Eye, TrendingUp, DollarSign } from "lucide-react"
 import type { Tool } from "@shared/schema"
-import { useTools, useCreateTool, useUpdateTool, useDeleteTool } from "@/hooks/useTools"
+import { useTools, useCreateTool, useUpdateTool, useDeleteTool, useActivateTool, usePauseTool } from "@/hooks/useTools"
 import { useToast } from "@/hooks/use-toast"
 import { toolApi } from "@/lib/api"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 // Extended Tool type to include API response fields
 interface ExtendedTool extends Tool {
@@ -33,6 +40,8 @@ export default function ToolsPage() {
   const { mutate: createTool } = useCreateTool()
   const { mutate: updateTool } = useUpdateTool()
   const { mutate: deleteTool } = useDeleteTool()
+  const { mutate: activateTool } = useActivateTool()
+  const { mutate: pauseTool } = usePauseTool()
 
   const columns = [
     { 
@@ -86,9 +95,79 @@ export default function ToolsPage() {
     { 
       header: "Trạng thái", 
       accessor: (tool: ExtendedTool) => (
-        <Badge variant={tool.status === 1 ? "default" : "secondary"}>
-          {tool.status === 1 ? "Hoạt động" : "Không hoạt động"}
-        </Badge>
+        <div className="flex items-center space-x-2">
+          <Select
+            value={tool.status.toString()}
+            onValueChange={(value) => {
+              const newStatus = Number(value);
+              if (newStatus !== tool.status) {
+                if (newStatus === 1) {
+                  // Activate the tool
+                  activateTool(tool.id, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Thành công",
+                        description: `Đã kích hoạt tool ${tool.name}`,
+                      });
+                    },
+                    onError: (error: any) => {
+                      console.error("Error activating tool:", error);
+                      let errorMessage = "Có lỗi xảy ra khi kích hoạt tool";
+                      
+                      if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        title: "Lỗi",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                } else {
+                  // Pause the tool
+                  pauseTool(tool.id, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Thành công",
+                        description: `Đã tạm dừng tool ${tool.name}`,
+                      });
+                    },
+                    onError: (error: any) => {
+                      console.error("Error pausing tool:", error);
+                      let errorMessage = "Có lỗi xảy ra khi tạm dừng tool";
+                      
+                      if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        title: "Lỗi",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                }
+              }
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue>
+                {tool.status === 1 ? "Hoạt động" : "Không hoạt động"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Hoạt động</SelectItem>
+              <SelectItem value="0">Không hoạt động</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       )
     },
     { 

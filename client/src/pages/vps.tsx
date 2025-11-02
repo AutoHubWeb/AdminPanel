@@ -28,7 +28,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { useVps, useCreateVps, useUpdateVps, useDeleteVps } from "@/hooks/useVps"
+import { useVps, useCreateVps, useUpdateVps, useDeleteVps, useActivateVps, usePauseVps } from "@/hooks/useVps"
 import type { Vps } from "@shared/schema"
 
 export default function VpsPage() {
@@ -44,8 +44,7 @@ export default function VpsPage() {
     location: "",
     os: "",
     tags: "",
-    price: "",
-    status: "0"
+    price: ""
   })
   const { toast } = useToast()
   
@@ -59,6 +58,8 @@ export default function VpsPage() {
   const createVpsMutation = useCreateVps()
   const updateVpsMutation = useUpdateVps()
   const deleteVpsMutation = useDeleteVps()
+  const activateVpsMutation = useActivateVps()
+  const pauseVpsMutation = usePauseVps()
 
   const columns = [
     { header: "Tên VPS", accessor: "name" as keyof Vps },
@@ -82,14 +83,81 @@ export default function VpsPage() {
     },
     { 
       header: "Trạng thái", 
-      accessor: (vps: Vps) => {
-        // Convert numeric status to string for StatusBadge
-        const statusMap: Record<number, string> = {
-          0: "inactive",
-          1: "active"
-        };
-        return <StatusBadge status={statusMap[vps.status] || "unknown"} />
-      }
+      accessor: (vps: Vps) => (
+        <div className="flex items-center space-x-2">
+          <Select
+            value={vps.status.toString()}
+            onValueChange={(value) => {
+              const newStatus = Number(value);
+              if (newStatus !== vps.status) {
+                if (newStatus === 1) {
+                  // Activate the VPS
+                  activateVpsMutation.mutate(vps.id, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Thành công",
+                        description: `Đã kích hoạt VPS ${vps.name}`,
+                      });
+                    },
+                    onError: (error: any) => {
+                      console.error("Error activating VPS:", error);
+                      let errorMessage = "Có lỗi xảy ra khi kích hoạt VPS";
+                      
+                      if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        title: "Lỗi",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                } else {
+                  // Pause the VPS
+                  pauseVpsMutation.mutate(vps.id, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Thành công",
+                        description: `Đã tạm dừng VPS ${vps.name}`,
+                      });
+                    },
+                    onError: (error: any) => {
+                      console.error("Error pausing VPS:", error);
+                      let errorMessage = "Có lỗi xảy ra khi tạm dừng VPS";
+                      
+                      if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        title: "Lỗi",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                }
+              }
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue>
+                {vps.status === 1 ? "hoạt động" : "không hoạt động"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">không hoạt động</SelectItem>
+              <SelectItem value="1">hoạt động</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )
     },
     { 
       header: "Tags",
@@ -154,8 +222,7 @@ export default function VpsPage() {
       location: vps.location || "",
       os: vps.os || "",
       tags: vps.tags?.join(", ") || "",
-      price: vps.price?.toString() || "",
-      status: vps.status?.toString() || "0"
+      price: vps.price?.toString() || ""
     })
     setIsFormOpen(true)
   }
@@ -172,8 +239,7 @@ export default function VpsPage() {
       location: "",
       os: "",
       tags: "",
-      price: "",
-      status: "0"
+      price: ""
     })
     setIsFormOpen(true)
   }
@@ -211,7 +277,6 @@ export default function VpsPage() {
       cpu: Number(formData.cpu),
       bandwidth: Number(formData.bandwidth),
       price: Number(formData.price),
-      status: Number(formData.status),
       tags: formData.tags ? formData.tags.split(",").map((tag: string) => tag.trim()) : []
     };
     
@@ -447,22 +512,6 @@ export default function VpsPage() {
                         onChange={(e) => handleInputChange("price", e.target.value)}
                         required
                       />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Trạng thái</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) => handleInputChange("status", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn trạng thái" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">Inactive</SelectItem>
-                          <SelectItem value="1">Active</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </CardContent>
                 </Card>

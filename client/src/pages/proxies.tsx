@@ -5,8 +5,15 @@ import { ProxyDetailModal } from "@/components/proxy-detail-modal"
 import { StatusBadge } from "@/components/status-badge"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { Proxy } from "@shared/schema"
-import { useProxies, useCreateProxy, useUpdateProxy, useDeleteProxy } from "@/hooks/useProxies"
+import { useProxies, useCreateProxy, useUpdateProxy, useDeleteProxy, useActivateProxy, usePauseProxy } from "@/hooks/useProxies"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ProxiesPage() {
@@ -20,7 +27,8 @@ export default function ProxiesPage() {
   const createProxyMutation = useCreateProxy()
   const updateProxyMutation = useUpdateProxy()
   const deleteProxyMutation = useDeleteProxy()
-
+  const activateProxyMutation = useActivateProxy()
+  const pauseProxyMutation = usePauseProxy()
   const columns = [
     { header: "Tên Proxy", accessor: "name" as keyof Proxy },
     { 
@@ -51,14 +59,81 @@ export default function ProxiesPage() {
     },
     { 
       header: "Trạng thái", 
-      accessor: (proxy: Proxy) => {
-        // Convert numeric status to string for StatusBadge
-        const statusMap: Record<number, string> = {
-          0: "inactive",
-          1: "active"
-        };
-        return <StatusBadge status={statusMap[proxy.status] || "unknown"} />
-      }
+      accessor: (proxy: Proxy) => (
+        <div className="flex items-center space-x-2">
+          <Select
+            value={proxy.status.toString()}
+            onValueChange={(value) => {
+              const newStatus = Number(value);
+              if (newStatus !== proxy.status) {
+                if (newStatus === 1) {
+                  // Activate the proxy
+                  activateProxyMutation.mutate(proxy.id, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Thành công",
+                        description: `Đã kích hoạt proxy ${proxy.name}`,
+                      });
+                    },
+                    onError: (error: any) => {
+                      console.error("Error activating proxy:", error);
+                      let errorMessage = "Có lỗi xảy ra khi kích hoạt proxy";
+                      
+                      if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        title: "Lỗi",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                } else {
+                  // Pause the proxy
+                  pauseProxyMutation.mutate(proxy.id, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Thành công",
+                        description: `Đã tạm dừng proxy ${proxy.name}`,
+                      });
+                    },
+                    onError: (error: any) => {
+                      console.error("Error pausing proxy:", error);
+                      let errorMessage = "Có lỗi xảy ra khi tạm dừng proxy";
+                      
+                      if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        title: "Lỗi",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                }
+              }
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue>
+                {proxy.status === 1 ? "Active" : "Inactive"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Active</SelectItem>
+              <SelectItem value="0">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )
     },
     { 
       header: "Ngày tạo",
@@ -73,16 +148,7 @@ export default function ProxiesPage() {
     { name: "name", label: "Tên Proxy", type: "text" as const, required: true },
     { name: "description", label: "Mô tả", type: "textarea" as const },
     { name: "price", label: "Giá (VND)", type: "number" as const, required: true },
-    { name: "inventory", label: "Tồn kho", type: "number" as const, required: true },
-    { 
-      name: "status", 
-      label: "Trạng thái", 
-      type: "select" as const,
-      options: [
-        { value: "0", label: "Inactive" },
-        { value: "1", label: "Active" }
-      ]
-    }
+    { name: "inventory", label: "Tồn kho", type: "number" as const, required: true }
   ]
 
   const handleAdd = () => {
@@ -91,12 +157,7 @@ export default function ProxiesPage() {
   }
 
   const handleEdit = (proxy: Proxy) => {
-    // Transform proxy data for the form
-    const formData = {
-      ...proxy,
-      status: String(proxy.status)
-    };
-    setEditingProxy(formData as any)
+    setEditingProxy(proxy)
     setIsFormOpen(true)
   }
 
@@ -130,8 +191,7 @@ export default function ProxiesPage() {
       name: data.name,
       description: data.description,
       inventory: Number(data.inventory),
-      price: Number(data.price),
-      status: Number(data.status)
+      price: Number(data.price)
     }
     
     if (editingProxy) {
