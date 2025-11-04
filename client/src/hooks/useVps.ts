@@ -10,15 +10,10 @@ interface VpsListApiResponse {
     meta: {
       total: number;
       page: number;
+      limit: number;
+      totalPages: number;
     };
   };
-  message: string;
-}
-
-// Define the API response structure for create/update endpoints
-interface VpsItemApiResponse {
-  statusCode: number;
-  data: ApiVps;
   message: string;
 }
 
@@ -62,26 +57,73 @@ const mapApiVpsToVps = (item: ApiVps): Vps => ({
   tags: item.tags || []
 });
 
-// Fetch all VPS
-export function useVps() {
+// Fetch all VPS with optional search parameters and pagination
+export function useVps(searchParams?: { keyword?: string; page?: number; limit?: number }) {
   return useQuery({
-    queryKey: ["vps"],
-    queryFn: async (): Promise<Vps[]> => {
+    queryKey: ["vps", searchParams],
+    queryFn: async (): Promise<{ items: Vps[]; meta: any }> => {
       try {
-        const response = await vpsApi.list();
+        const response = await vpsApi.list(searchParams);
         console.log("VPS API Response:", response);
         
-        // Access the items directly from response.data.items
-        const vpsItems = response.data?.items || [];
+        // Handle the nested data structure from the API
+        if (response.data && response.data.items) {
+          const vpsItems = response.data.items || [];
+          // Calculate missing meta information
+          const total = response.data.meta?.total ?? vpsItems.length;
+          const page = response.data.meta?.page ?? searchParams?.page ?? 1;
+          const limit = response.data.meta?.limit ?? searchParams?.limit ?? 10;
+          const totalPages = response.data.meta?.totalPages ?? Math.ceil(total / limit);
+          
+          const meta = {
+            total,
+            page,
+            limit,
+            totalPages
+          };
+          
+          // Map API response to ensure all fields are properly typed
+          const mappedVpsItems: Vps[] = vpsItems.map(mapApiVpsToVps);
+          
+          console.log("Mapped VPS Items:", mappedVpsItems);
+          return { items: mappedVpsItems, meta };
+        }
+        
+        // Fallback for different response structures
+        const data = response.data || response;
+        const vpsItems = Array.isArray(data) ? data : [];
+        const total = vpsItems.length;
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        const totalPages = Math.ceil(total / limit);
+        
+        const meta = {
+          total,
+          page,
+          limit,
+          totalPages
+        };
         
         // Map API response to ensure all fields are properly typed
         const mappedVpsItems: Vps[] = vpsItems.map(mapApiVpsToVps);
         
         console.log("Mapped VPS Items:", mappedVpsItems);
-        return mappedVpsItems;
+        return { items: mappedVpsItems, meta };
       } catch (error) {
         console.error("Error fetching VPS data:", error);
-        throw error;
+        // Return empty array on error to prevent app crashes
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        
+        return { 
+          items: [], 
+          meta: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+          }
+        };
       }
     },
   });
@@ -94,8 +136,8 @@ export function useCreateVps() {
   return useMutation({
     mutationFn: async (vpsData: any): Promise<Vps> => {
       const response = await vpsApi.create(vpsData);
-      const apiResponse = response.data as VpsItemApiResponse;
-      return mapApiVpsToVps(apiResponse.data);
+      const apiResponse = response.data as VpsListApiResponse;
+      return mapApiVpsToVps(apiResponse.data.items[0]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vps"] });

@@ -1,291 +1,518 @@
-import { useState, useCallback, useMemo } from "react"
-import { DataTable } from "@/components/data-table"
-import { EntityForm } from "@/components/entity-form" 
-import type { User } from "@shared/schema"
-import { useToast } from "@/hooks/use-toast"
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/useUsers"
-
-// Memoized DataTable component to prevent unnecessary re-renders
-const UsersDataTable = ({
-  users,
-  columns,
-  handleAdd,
-  handleEdit,
-  handleDelete,
-  handleSearch
-}: {
-  users: User[];
-  columns: any[];
-  handleAdd: () => void;
-  handleEdit: (user: User) => void;
-  handleDelete: (user: User) => void;
-  handleSearch: (keyword: string) => void;
-}) => (
-  <DataTable
-    title="Quản lý User"
-    data={users}
-    columns={columns}
-    onAdd={handleAdd}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
-    searchPlaceholder="Tìm kiếm user..."
-    searchKey="username"
-    onSearch={handleSearch}
-  />
-);
-
-// Memoized EntityForm component to prevent unnecessary re-renders
-const UsersEntityForm = ({
-  editingUser,
-  isFormOpen,
-  setIsFormOpen,
-  formFields,
-  handleSubmit
-}: {
-  editingUser: User | null;
-  isFormOpen: boolean;
-  setIsFormOpen: (open: boolean) => void;
-  formFields: any[];
-  handleSubmit: (data: Record<string, any>) => void;
-}) => {
-  // Transform user data to match form field names
-  const initialData = editingUser ? {
-    fullname: editingUser.username,
-    email: editingUser.email,
-    phone: editingUser.phone || "",
-    // Note: password is not included for security reasons
-  } : {};
-
-  return (
-    <EntityForm
-      title={editingUser ? "Chỉnh sửa User" : "Thêm User mới"}
-      description={editingUser ? "Cập nhật thông tin user" : "Tạo tài khoản user mới"}
-      fields={formFields}
-      initialData={initialData}
-      isOpen={isFormOpen}
-      onOpenChange={setIsFormOpen}
-      onSubmit={handleSubmit}
-      isLoading={false}
-    />
-  );
-};
+import { useState } from "react";
+import { DataTable } from "@/components/data-table";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, useLockUser, useUnlockUser } from "@/hooks/useUsers";
+import type { User } from "@shared/schema";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 export default function UsersPage() {
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [searchKeyword, setSearchKeyword] = useState("")
-  const { toast } = useToast()
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState<Record<string, any>>({
+    fullname: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "0", // Default to user (0) as string for form
+    status: "active",
+  });
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const { toast } = useToast();
   
-  const { data: users = [], isLoading, error } = useUsers(searchKeyword)
-  const { mutate: createUser } = useCreateUser()
-  const { mutate: updateUser } = useUpdateUser()
-  const { mutate: deleteUser } = useDeleteUser()
+  const { data, isLoading, error, isFetching, refetch } = useUsers({
+    keyword: searchKeyword || undefined,
+    page: currentPage,
+    limit: itemsPerPage
+  });
+  
+  const userList = data?.items || [];
+  const meta = data?.meta || {
+    total: 0,
+    page: currentPage,
+    limit: itemsPerPage,
+    totalPages: 1
+  };
+  
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+  const lockUserMutation = useLockUser();
+  const unlockUserMutation = useUnlockUser();
 
-  // Memoize columns to prevent re-creation on each render
-  const columns = useMemo(() => [
-    { header: "Fullname", accessor: "username" as keyof User },
+  const columns = [
+    { header: "Tên người dùng", accessor: "username" as keyof User },
     { header: "Email", accessor: "email" as keyof User },
     { 
-      header: "Số điện thoại", 
-      accessor: (user: User) => user.phone || "Chưa cập nhật"
-    },
-    { 
-      header: "Ngày tham gia",
-      accessor: (user: User) => user.createdAt 
-        ? new Date(user.createdAt).toLocaleDateString("vi-VN")
-        : "Không xác định"
-    },
-    { 
-      header: "Trạng thái khóa",
+      header: "Vai trò", 
       accessor: (user: User) => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          user.status === 'active' 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-red-100 text-red-800'
-        }`}>
-          {user.status === 'active' ? 'Không bị khóa' : 'Bị khóa'}
+        <span className={user.role === "admin" ? "font-bold text-blue-600" : ""}>
+          {user.role === "admin" ? "Quản trị viên" : "Người dùng"}
         </span>
       )
+    },
+    { 
+      header: "Trạng thái", 
+      accessor: (user: User) => <StatusBadge status={user.status} />
+    },
+    { 
+      header: "Hành động",
+      accessor: (user: User) => (
+        <div className="flex space-x-2">
+          {user.status === "active" ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleLockUser(user.id)}
+              disabled={lockUserMutation.isPending}
+            >
+              Khóa
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleUnlockUser(user.id)}
+              disabled={unlockUserMutation.isPending}
+            >
+              Mở khóa
+            </Button>
+          )}
+        </div>
+      )
+    },
+    { 
+      header: "Ngày tạo", 
+      accessor: (user: User) => new Date(user.createdAt).toLocaleDateString("vi-VN")
     }
-  ], []);
+  ];
 
-  // Memoize form fields to prevent re-creation on each render
-  const formFields = useMemo(() => {
-    const baseFields = [
-      { name: "fullname", label: "Fullname", type: "text" as const, required: true },
-      { name: "email", label: "Email", type: "email" as const, required: true },
-    ];
-    
-    // Only include password field for new users, not for editing existing users
-    if (!editingUser) {
-      baseFields.push({ name: "password", label: "Mật khẩu", type: "text" as const, required: true });
-    }
-    
-    baseFields.push({ name: "phone", label: "Số điện thoại", type: "text" as const, required: false });
-    
-    return baseFields;
-  }, [editingUser]);
+  // Update form data when editing
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      fullname: user.username,
+      email: user.email,
+      phone: user.phone || "",
+      password: "", // Don't prefill password when editing
+      role: user.role === "admin" ? "1" : "0", // Convert to string for form
+      status: user.status,
+    });
+    setIsFormOpen(true);
+  };
 
-  const handleAdd = useCallback(() => {
-    setEditingUser(null)
-    setIsFormOpen(true)
-  }, [setIsFormOpen]);
+  const handleAdd = () => {
+    setEditingUser(null);
+    setFormData({
+      fullname: "",
+      email: "",
+      phone: "",
+      password: "",
+      role: "0", // Default to user (0) as string
+      status: "active",
+    });
+    setIsFormOpen(true);
+  };
 
-  const handleEdit = useCallback((user: User) => {
-    setEditingUser(user)
-    setIsFormOpen(true)
-  }, [setIsFormOpen]);
-
-  const handleDelete = useCallback((user: User) => {
-    deleteUser(user.id, {
+  const handleDelete = (user: User) => {
+    // Remove the browser's default confirmation dialog and use only our toast notifications
+    deleteUserMutation.mutate(user.id, {
       onSuccess: () => {
         toast({
           title: "Thành công",
-          description: `Đã xóa user ${user.username} thành công`,
-        })
+          description: `Đã xóa người dùng ${user.username} thành công`,
+        });
+        // Refetch users after deletion
+        refetch();
       },
-      onError: (error) => {
+      onError: (error: any) => {
         toast({
           title: "Lỗi",
-          description: `Có lỗi xảy ra khi xóa user ${user.username}`,
+          description: `Có lỗi xảy ra khi xóa người dùng ${user.username}`,
           variant: "destructive",
-        })
-        console.error("Error deleting user:", error)
+        });
+        console.error("Error deleting user:", error);
       }
-    })
-  }, [deleteUser, toast]);
+    });
+  };
 
-  const handleSubmit = useCallback((data: Record<string, any>) => {
-    console.log("Submitting user data:", data)
-    
+  const handleLockUser = (userId: string) => {
+    lockUserMutation.mutate(userId, {
+      onSuccess: () => {
+        toast({
+          title: "Thành công",
+          description: "Đã khóa người dùng thành công",
+        });
+        // Refetch users after locking
+        refetch();
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Lỗi",
+          description: "Có lỗi xảy ra khi khóa người dùng",
+          variant: "destructive",
+        });
+        console.error("Error locking user:", error);
+      }
+    });
+  };
+
+  const handleUnlockUser = (userId: string) => {
+    unlockUserMutation.mutate(userId, {
+      onSuccess: () => {
+        toast({
+          title: "Thành công",
+          description: "Đã mở khóa người dùng thành công",
+        });
+        // Refetch users after unlocking
+        refetch();
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Lỗi",
+          description: "Có lỗi xảy ra khi mở khóa người dùng",
+          variant: "destructive",
+        });
+        console.error("Error unlocking user:", error);
+      }
+    });
+  };
+
+  const handleInputChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = () => {
     if (editingUser) {
-      // Handle update user - only update fullname, email, and phone
-      const userData = {
-        fullname: data.fullname, // Send as fullname instead of username
-        email: data.email,
-        phone: data.phone || undefined,
-        role: 0  // Add default role field with value 0 for updates as well
-        // Password is intentionally excluded from updates
+      // Prepare data for API call with correct types
+      const apiData = {
+        fullname: formData.fullname,
+        email: formData.email,
+        phone: formData.phone || null,
+        role: parseInt(formData.role), // Convert string to number for API
       };
-      
-      // Since the API client expects Partial<InsertUser> type, we need to cast to any
-      // The server will handle mapping fullname to username
-      updateUser({ id: editingUser.id, data: userData as any }, {
+
+      updateUserMutation.mutate({ 
+        id: editingUser.id, 
+        data: apiData
+      }, {
         onSuccess: (updatedUser) => {
           toast({
             title: "Thành công",
-            description: `Đã cập nhật user ${updatedUser.username} thành công`,
-          })
-          setIsFormOpen(false)
+            description: `Đã cập nhật người dùng ${updatedUser.username} thành công`,
+          });
+          setIsFormOpen(false);
+          // Refetch users after update
+          refetch();
         },
         onError: (error: any) => {
-          console.error("Error updating user:", error)
-          let errorMessage = "Có lỗi xảy ra khi cập nhật user"
+          console.error("Error updating user:", error);
+          let errorMessage = "Có lỗi xảy ra khi cập nhật người dùng";
           
           // Handle API error messages
           if (error.response?.data?.message) {
-            errorMessage = error.response.data.message
+            errorMessage = error.response.data.message;
           } else if (error.response?.data?.error) {
-            errorMessage = error.response.data.error
+            errorMessage = error.response.data.error;
           }
           
           toast({
             title: "Lỗi",
             description: errorMessage,
             variant: "destructive",
-          })
+          });
         }
-      })
+      });
     } else {
-      // Handle create user - map form data to send fullname instead of username
-      const userData = {
-        fullname: data.fullname, // Send fullname instead of username
-        email: data.email,
-        phone: data.phone || undefined,
-        password: data.password,
-        role: 0  // Add default role field with value 0
+      // Prepare data for API call with correct types
+      const apiData = {
+        fullname: formData.fullname,
+        email: formData.email,
+        phone: formData.phone || null,
+        password: formData.password,
+        role: parseInt(formData.role), // Convert string to number for API
       };
-      
-      // Log the data being sent to verify role is included
-      console.log("Sending user data with role:", userData);
-      
-      // Since the API client expects InsertUser type, we need to cast to any
-      // In a real application, you would update the API or create a new endpoint
-      createUser(userData as any, {
+
+      createUserMutation.mutate(apiData, {
         onSuccess: (newUser) => {
           toast({
             title: "Thành công", 
-            description: `Đã tạo user ${newUser.username} thành công`,
-          })
-          setIsFormOpen(false)
+            description: `Đã tạo người dùng ${newUser.username} thành công`,
+          });
+          setIsFormOpen(false);
+          // Refetch users after creation
+          refetch();
         },
         onError: (error: any) => {
-          console.error("Error creating user:", error)
-          let errorMessage = "Có lỗi xảy ra khi tạo user"
+          console.error("Error creating user:", error);
+          let errorMessage = "Có lỗi xảy ra khi tạo người dùng";
           
           // Handle API error messages
           if (error.response?.data?.message) {
-            errorMessage = error.response.data.message
+            errorMessage = error.response.data.message;
           } else if (error.response?.data?.error) {
-            errorMessage = error.response.data.error
+            errorMessage = error.response.data.error;
           }
           
           toast({
             title: "Lỗi",
             description: errorMessage,
             variant: "destructive",
-          })
+          });
         }
-      })
+      });
     }
-  }, [editingUser, createUser, updateUser, toast, setIsFormOpen]);
+  };
 
-  const handleSearch = useCallback((keyword: string) => {
-    console.log("Search keyword:", keyword);
-    setSearchKeyword(keyword)
-  }, [])
+  const handleSearch = (keyword: string) => {
+    setSearchKeyword(keyword);
+    // Reset to first page when searching
+    setCurrentPage(1);
+  };
 
-  // Show loading only on initial load, not on search
-  const showLoading = isLoading && !searchKeyword
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Show loading indicator only on initial load, not during subsequent searches or pagination
+  const showLoading = isLoading && !searchKeyword && currentPage === 1;
 
   if (showLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Đang tải dữ liệu user...</p>
-        </div>
-      </div>
-    )
+    return <div>Đang tải dữ liệu...</div>;
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <p className="text-red-600">Có lỗi xảy ra khi tải dữ liệu user</p>
-        </div>
+      <div>
+        <h2>Có lỗi xảy ra khi tải dữ liệu</h2>
+        <p>Error: {(error as Error).message}</p>
+        <p>Vui lòng kiểm tra console để biết thêm chi tiết.</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
-      <UsersDataTable
-        users={users}
+      <DataTable
+        title="Quản lý Người dùng"
+        data={userList}
         columns={columns}
-        handleAdd={handleAdd}
-        handleEdit={handleEdit}
-        handleDelete={handleDelete}
-        handleSearch={handleSearch}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        searchPlaceholder="Tìm kiếm người dùng..."
+        searchKey="username"
+        onSearch={handleSearch}
       />
 
-      <UsersEntityForm
-        editingUser={editingUser}
-        isFormOpen={isFormOpen}
-        setIsFormOpen={setIsFormOpen}
-        formFields={formFields}
-        handleSubmit={handleSubmit}
-      />
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingUser ? "Chỉnh sửa Người dùng" : "Thêm Người dùng mới"}</DialogTitle>
+            <DialogDescription>
+              {editingUser ? "Cập nhật thông tin người dùng" : "Thêm người dùng mới vào hệ thống"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullname">
+                  Tên người dùng <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="fullname"
+                  value={formData.fullname}
+                  onChange={(e) => handleInputChange("fullname", e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  Mật khẩu {editingUser ? "" : <span className="text-red-500">*</span>}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  required={!editingUser}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone">Số điện thoại</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                />
+              </div>
+              
+              {!editingUser && (
+                <div className="space-y-2">
+                  <Label htmlFor="role">Vai trò</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => handleInputChange("role", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Người dùng</SelectItem>
+                      <SelectItem value="1">Quản trị viên</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsFormOpen(false)}
+              >
+                Hủy
+              </Button>
+              <Button 
+                type="submit"
+                disabled={createUserMutation.isPending || updateUserMutation.isPending}
+              >
+                {createUserMutation.isPending || updateUserMutation.isPending ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {isFetching && (searchKeyword || currentPage > 1) && (
+        <div className="text-center text-sm text-gray-500">Đang tải dữ liệu...</div>
+      )}
+      
+      {meta.total > 0 && (
+        <Pagination
+          currentPage={meta.page || currentPage}
+          totalPages={meta.totalPages || 1}
+          totalItems={meta.total || 0}
+          itemsPerPage={meta.limit || itemsPerPage}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
-  )
+  );
+}
+
+// Simple pagination component for users page
+function Pagination({ 
+  currentPage, 
+  totalPages, 
+  totalItems, 
+  itemsPerPage, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  totalItems: number; 
+  itemsPerPage: number; 
+  onPageChange: (page: number) => void; 
+}) {
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
+  
+  const handleFirstPage = () => onPageChange(1);
+  const handlePreviousPage = () => onPageChange(Math.max(1, currentPage - 1));
+  const handleNextPage = () => onPageChange(Math.min(totalPages, currentPage + 1));
+  const handleLastPage = () => onPageChange(totalPages);
+
+  return (
+    <div className="flex items-center justify-between px-2 py-4">
+      <div className="text-sm text-muted-foreground">
+        Hiển thị từ {startIndex} đến {endIndex} trong tổng số {totalItems} kết quả
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleFirstPage}
+          disabled={currentPage === 1}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePreviousPage}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
+        <div className="text-sm font-medium">
+          Trang {currentPage} / {totalPages}
+        </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLastPage}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 }

@@ -2,42 +2,56 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userApi } from "@/lib/api";
 import type { User, InsertUser } from "@shared/schema";
 
-// Type for API response
-interface UserApiResponse {
+interface ApiUser {
   id: string;
-  createdAt: string;
-  updatedAt: string;
+  code: string;
   fullname: string;
   email: string;
+  phone: string | null;
   role: number;
   isLocked: number;
   accountBalance: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface UsersResponse {
+interface UserApiResponse {
   statusCode: number;
   data: {
-    items: UserApiResponse[];
+    items: ApiUser[];
     meta: {
       total: number;
       page: number;
+      limit: number;
+      totalPages: number;
     };
   };
   message: string;
 }
 
-// Transform API user to match our User type
-const transformApiUserToUser = (apiUser: UserApiResponse): User => {
-  // Check if apiUser is defined
+// Define the data structure for API calls
+interface UserApiData {
+  fullname: string;
+  email: string;
+  phone: string | null;
+  role: number;
+}
+
+// Define the data structure for user creation API calls
+interface UserCreateApiData extends UserApiData {
+  password: string;
+}
+
+const transformApiUserToUser = (apiUser: ApiUser): User => {
+  // Handle potentially missing or null values
   if (!apiUser) {
-    // Return a default user object if apiUser is undefined
     return {
       id: '',
       username: '',
       email: '',
       phone: null,
       role: 'user',
-      status: 'active',
+      status: 'inactive',
       lastLogin: null,
       createdAt: '', // Should be string, not Date
     };
@@ -47,32 +61,81 @@ const transformApiUserToUser = (apiUser: UserApiResponse): User => {
     id: apiUser.id,
     username: apiUser.fullname,
     email: apiUser.email,
-    phone: null, // API doesn't provide phone in this response
-    role: apiUser.role === 0 ? 'user' : 'admin',
+    phone: apiUser.phone,
+    role: apiUser.role === 1 ? 'admin' : 'user',
     status: apiUser.isLocked === 0 ? 'active' : 'inactive',
     lastLogin: null, // API doesn't provide lastLogin in this response
     createdAt: apiUser.createdAt, // Keep as string
   };
 };
 
-// Fetch all non-admin users with optional search
-export function useUsers(keyword?: string) {
+// Fetch all non-admin users with optional search and pagination
+export function useUsers(searchParams?: { keyword?: string; page?: number; limit?: number }) {
   return useQuery({
-    queryKey: ["users", keyword],
-    queryFn: async (): Promise<User[]> => {
+    queryKey: ["users", searchParams],
+    queryFn: async (): Promise<{ items: User[]; meta: any }> => {
       try {
-        console.log("Fetching users with keyword:", keyword);
-        const response = await userApi.list({ keyword });
+        console.log("Fetching users with params:", searchParams);
+        const response = await userApi.list(searchParams);
         console.log("API Response:", response);
         
-        // Access the items directly from response.data.items
-        const userItems = response.data?.items || [];
+        // Handle the nested data structure from the API
+        if (response.data && response.data.items) {
+          const userItems = response.data.items || [];
+          // Calculate missing meta information
+          const total = response.data.meta?.total ?? userItems.length;
+          const page = response.data.meta?.page ?? searchParams?.page ?? 1;
+          const limit = response.data.meta?.limit ?? searchParams?.limit ?? 10;
+          const totalPages = response.data.meta?.totalPages ?? Math.ceil(total / limit);
+          
+          const meta = {
+            total,
+            page,
+            limit,
+            totalPages
+          };
+          
+          console.log("Returning users:", userItems);
+          return { 
+            items: userItems.map(transformApiUserToUser), 
+            meta 
+          };
+        }
         
-        console.log("Returning users:", userItems);
-        return userItems.map(transformApiUserToUser);
+        // Fallback for different response structures
+        const data = response.data || response;
+        const userItems = Array.isArray(data) ? data : [];
+        const total = userItems.length;
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        const totalPages = Math.ceil(total / limit);
+        
+        const meta = {
+          total,
+          page,
+          limit,
+          totalPages
+        };
+        
+        return { 
+          items: userItems.map(transformApiUserToUser), 
+          meta 
+        };
       } catch (error) {
         console.error("Error fetching users:", error);
-        return [];
+        // Return empty array on error to prevent app crashes
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        
+        return { 
+          items: [], 
+          meta: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+          }
+        };
       }
     },
     // Keep previous data while fetching new data
@@ -88,14 +151,12 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (userData: InsertUser): Promise<User> => {
+    mutationFn: async (userData: UserCreateApiData): Promise<User> => {
+      // Send data directly to the API without mapping to InsertUser
       const response = await userApi.create(userData);
-      // Check if response data exists and has the expected structure
-      if (!response.data || !response.data.data) {
-        throw new Error("Invalid response structure from server");
-      }
+      // The axios interceptor already extracts the data property, so we can use response.data directly
       // Transform the response to match our User type
-      const apiUser = response.data.data as UserApiResponse;
+      const apiUser = response.data;
       return transformApiUserToUser(apiUser);
     },
     onSuccess: () => {
@@ -109,14 +170,12 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertUser> }): Promise<User> => {
+    mutationFn: async ({ id, data }: { id: string; data: UserApiData }): Promise<User> => {
+      // Send data directly to the API without mapping to InsertUser
       const response = await userApi.update(id, data);
-      // Check if response data exists and has the expected structure
-      if (!response.data || !response.data.data) {
-        throw new Error("Invalid response structure from server");
-      }
+      // The axios interceptor already extracts the data property, so we can use response.data directly
       // Transform the response to match our User type
-      const apiUser = response.data.data as UserApiResponse;
+      const apiUser = response.data;
       return transformApiUserToUser(apiUser);
     },
     onSuccess: () => {
@@ -132,6 +191,34 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
       await userApi.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+// Lock a user
+export function useLockUser() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await userApi.lock(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+// Unlock a user
+export function useUnlockUser() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await userApi.unlock(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });

@@ -2,77 +2,120 @@ import { useQuery } from "@tanstack/react-query";
 import { transactionApi } from "@/lib/api";
 import type { Transaction } from "@shared/schema";
 
-// Hook to fetch admin transactions
-export const useTransactions = (keyword?: string) => {
-  return useQuery<Transaction[], Error>({
-    queryKey: ["transactions", keyword],
-    queryFn: async () => {
-      try {
-        const response = await transactionApi.list({ keyword });
-        // Handle the nested data structure from the API
-        if (response.data && response.data.items) {
-          return response.data.items;
-        }
-        // Fallback for different response structures
-        const data = response.data || response;
-        return Array.isArray(data) ? data : [];
-      } catch (error: any) {
-        console.error("Error fetching transactions:", error);
-        // Return empty array on error to prevent app crashes
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1, // Only retry once
-  });
-};
+// Define the API response structure for list endpoint
+interface TransactionListApiResponse {
+  statusCode: number;
+  data: {
+    items: ApiTransaction[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+  message: string;
+}
 
-// Hook to fetch user transactions
-export const useUserTransactions = () => {
-  return useQuery<Transaction[], Error>({
-    queryKey: ["userTransactions"],
-    queryFn: async () => {
-      try {
-        const response = await transactionApi.listUser();
-        // Handle the nested data structure from the API
-        if (response.data && response.data.items) {
-          return response.data.items;
-        }
-        // Fallback for different response structures
-        const data = response.data || response;
-        return Array.isArray(data) ? data : [];
-      } catch (error: any) {
-        console.error("Error fetching user transactions:", error);
-        // Return empty array on error to prevent app crashes
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1, // Only retry once
-  });
-};
+// Define the complete Transaction structure from the API
+interface ApiTransaction {
+  id: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  action: string;
+  note: string;
+  user: {
+    id: string;
+    fullname: string;
+    email: string;
+    code: string;
+  };
+  [key: string]: any; // Allow for additional fields
+}
 
-// Hook to fetch top-up transactions
-export const useTopUpTransactions = () => {
-  return useQuery<Transaction[], Error>({
-    queryKey: ["topUpTransactions"],
-    queryFn: async () => {
+// Helper function to convert API Transaction to DB Transaction
+const mapApiTransactionToTransaction = (item: ApiTransaction): Transaction => ({
+  id: item.id,
+  code: item.code,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+  amount: item.amount,
+  balanceBefore: item.balanceBefore,
+  balanceAfter: item.balanceAfter,
+  action: item.action,
+  note: item.note,
+  user: item.user
+});
+
+// Fetch all Transactions with optional search parameters and pagination
+export function useTransactions(searchParams?: { keyword?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ["transactions", searchParams],
+    queryFn: async (): Promise<{ items: Transaction[]; meta: any }> => {
       try {
-        const response = await transactionApi.topUp();
+        const response = await transactionApi.list(searchParams);
+        
         // Handle the nested data structure from the API
         if (response.data && response.data.items) {
-          return response.data.items;
+          const transactionItems = response.data.items || [];
+          // Calculate missing meta information
+          const total = response.data.meta?.total ?? transactionItems.length;
+          const page = response.data.meta?.page ?? searchParams?.page ?? 1;
+          const limit = response.data.meta?.limit ?? searchParams?.limit ?? 10;
+          const totalPages = response.data.meta?.totalPages ?? Math.ceil(total / limit);
+          
+          const meta = {
+            total,
+            page,
+            limit,
+            totalPages
+          };
+          
+          // Map API response to ensure all fields are properly typed
+          const mappedTransactionItems: Transaction[] = transactionItems.map(mapApiTransactionToTransaction);
+          
+          return { items: mappedTransactionItems, meta };
         }
+        
         // Fallback for different response structures
         const data = response.data || response;
-        return Array.isArray(data) ? data : [];
-      } catch (error: any) {
-        console.error("Error fetching top-up transactions:", error);
+        const transactionItems = Array.isArray(data) ? data : [];
+        const total = transactionItems.length;
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        const totalPages = Math.ceil(total / limit);
+        
+        const meta = {
+          total,
+          page,
+          limit,
+          totalPages
+        };
+        
+        // Map API response to ensure all fields are properly typed
+        const mappedTransactionItems: Transaction[] = transactionItems.map(mapApiTransactionToTransaction);
+        
+        return { items: mappedTransactionItems, meta };
+      } catch (error) {
+        console.error("Error fetching transaction data:", error);
         // Return empty array on error to prevent app crashes
-        return [];
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        
+        return { 
+          items: [], 
+          meta: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+          }
+        };
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1, // Only retry once
   });
-};
+}

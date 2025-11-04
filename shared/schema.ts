@@ -124,6 +124,53 @@ export interface DashboardRevenueSummary {
   }[];
 }
 
+// Order interface
+export interface Order {
+  id: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    code: string;
+    createdAt: string;
+    updatedAt: string;
+    fullname: string;
+    email: string;
+    phone?: string;
+    role: number;
+    isLocked: number;
+    accountBalance: number;
+  };
+  totalPrice: number;
+  status: string;
+  note: string;
+  type: string;
+  vps: Vps | null;
+  tool: Tool | null;
+  proxy: Proxy | null;
+  toolOrder?: {
+    apiKey?: string;
+    expiredAt?: string;
+    changeApiKeyAt?: string;
+    name: string;
+    price: number;
+    duration: number;
+  };
+  proxyOrder?: {
+    proxies: string;
+    expiredAt: string;
+  };
+  vpsOrder?: {
+    ip: string;
+    username: string;
+    password: string;
+    expiredAt: string;
+  };
+  completedAt?: string;
+  expiredAt?: string;
+}
+
 // Insert types for forms
 export type InsertUser = Omit<User, 'id' | 'lastLogin' | 'createdAt'>;
 export type InsertTool = Omit<Tool, 'id' | 'createdAt' | 'updatedAt'>;

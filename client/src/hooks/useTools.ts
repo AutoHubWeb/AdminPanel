@@ -2,137 +2,143 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toolApi } from "@/lib/api";
 import type { Tool } from "@shared/schema";
 
-// Extended Tool type to include API response fields
-interface ExtendedTool extends Tool {
-  images?: Array<{
-    id: string;
-    fileUrl: string;
-  }>;
-  plans?: Array<{
-    name: string;
-    price: number;
-    duration: number;
-  }>;
+// Define the API response structure for list endpoint
+interface ToolListApiResponse {
+  statusCode: number;
+  data: {
+    items: ApiTool[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+  message: string;
 }
 
-// Type for API response
-interface ToolApiResponse {
+// Define the complete Tool structure from the API
+interface ApiTool {
   id: string;
   code: string;
   name: string;
-  description: string;
-  demo: string;
+  description: string | null;
+  demo: string | null;
   slug: string;
   soldQuantity: number;
   viewCount: number;
   status: number;
   createdAt: string;
   updatedAt: string;
-  images: Array<{
-    id: string;
-    fileUrl: string;
-  }>;
   plans: Array<{
+    id: string;
+    toolId: string;
     name: string;
     price: number;
     duration: number;
   }>;
+  images: Array<{
+    id: string;
+    toolId: string;
+    fileUrl: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 }
 
-interface ToolsResponse {
-  statusCode: number;
-  data: {
-    items: ToolApiResponse[];
-    meta: {
-      total: number;
-      page: number;
-    };
-  };
-  message: string;
-}
+// Helper function to convert API Tool to DB Tool
+const mapApiToolToTool = (item: ApiTool): Tool => ({
+  id: item.id,
+  code: item.code,
+  name: item.name,
+  description: item.description,
+  demo: item.demo,
+  slug: item.slug,
+  soldQuantity: item.soldQuantity,
+  viewCount: item.viewCount,
+  status: item.status,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+});
 
-// Transform API tool to match our Tool type
-const transformApiToolToTool = (apiTool: ToolApiResponse): ExtendedTool => {
-  return {
-    id: apiTool.id,
-    code: apiTool.code,
-    name: apiTool.name,
-    description: apiTool.description,
-    demo: apiTool.demo,
-    slug: apiTool.slug,
-    soldQuantity: apiTool.soldQuantity,
-    viewCount: apiTool.viewCount,
-    status: apiTool.status,
-    createdAt: apiTool.createdAt,
-    updatedAt: apiTool.updatedAt,
-    images: apiTool.images,
-    plans: apiTool.plans,
-  };
-};
-
-// Fetch all tools
-export function useTools() {
+// Fetch all Tools with optional search parameters and pagination
+export function useTools(searchParams?: { keyword?: string; page?: number; limit?: number }) {
   return useQuery({
-    queryKey: ["tools"],
-    queryFn: async (): Promise<ExtendedTool[]> => {
+    queryKey: ["tools", searchParams],
+    queryFn: async (): Promise<{ items: Tool[]; meta: any }> => {
       try {
-        console.log("Fetching tools");
-        const response = await toolApi.list();
-        console.log("API Response:", response);
+        const response = await toolApi.list(searchParams);
         
-        // Handle the response structure after axios interceptor
-        if (response.data && Array.isArray(response.data.items)) {
-          console.log("Returning tools:", response.data.items);
-          return response.data.items.map(transformApiToolToTool);
+        // Handle the nested data structure from the API
+        if (response.data && response.data.items) {
+          const toolItems = response.data.items || [];
+          // Calculate missing meta information
+          const total = response.data.meta?.total ?? toolItems.length;
+          const page = response.data.meta?.page ?? searchParams?.page ?? 1;
+          const limit = response.data.meta?.limit ?? searchParams?.limit ?? 10;
+          const totalPages = response.data.meta?.totalPages ?? Math.ceil(total / limit);
+          
+          const meta = {
+            total,
+            page,
+            limit,
+            totalPages
+          };
+          
+          // Map API response to ensure all fields are properly typed
+          const mappedToolItems: Tool[] = toolItems.map(mapApiToolToTool);
+          
+          return { items: mappedToolItems, meta };
         }
         
-        // Fallback for direct API response structure
-        const apiResponse = response.data as ToolsResponse;
-        if (apiResponse.statusCode === 200 && apiResponse.data?.items) {
-          console.log("Returning tools:", apiResponse.data.items);
-          return apiResponse.data.items.map(transformApiToolToTool);
-        }
+        // Fallback for different response structures
+        const data = response.data || response;
+        const toolItems = Array.isArray(data) ? data : [];
+        const total = toolItems.length;
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        const totalPages = Math.ceil(total / limit);
         
-        return [];
+        const meta = {
+          total,
+          page,
+          limit,
+          totalPages
+        };
+        
+        // Map API response to ensure all fields are properly typed
+        const mappedToolItems: Tool[] = toolItems.map(mapApiToolToTool);
+        
+        return { items: mappedToolItems, meta };
       } catch (error) {
-        console.error("Error fetching tools:", error);
-        return [];
+        console.error("Error fetching tool data:", error);
+        // Return empty array on error to prevent app crashes
+        const page = searchParams?.page ?? 1;
+        const limit = searchParams?.limit ?? 10;
+        
+        return { 
+          items: [], 
+          meta: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 1
+          }
+        };
       }
     },
-    // Keep previous data while fetching new data
-    placeholderData: (previousData) => previousData,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   });
 }
 
-// Create a new tool
+// Create a new Tool
 export function useCreateTool() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (toolData: any): Promise<ExtendedTool> => {
-      console.log("Creating tool with data:", toolData);
+    mutationFn: async (toolData: any): Promise<Tool> => {
       const response = await toolApi.create(toolData);
-      console.log("Create tool response:", response);
-      
-      // Handle different possible response structures
-      let apiTool: ToolApiResponse;
-      
-      // If response.data.data exists (new structure)
-      if (response.data && response.data.data) {
-        apiTool = response.data.data as ToolApiResponse;
-      } 
-      // If response.data is the tool object directly (old structure)
-      else if (response.data && response.data.id) {
-        apiTool = response.data as ToolApiResponse;
-      } 
-      // Fallback
-      else {
-        throw new Error("Unexpected response structure from create tool API");
-      }
-      
-      return transformApiToolToTool(apiTool);
+      const apiResponse = response.data as ToolListApiResponse;
+      return mapApiToolToTool(apiResponse.data.items[0]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
@@ -140,33 +146,15 @@ export function useCreateTool() {
   });
 }
 
-// Update a tool
+// Update a Tool
 export function useUpdateTool() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }): Promise<ExtendedTool> => {
-      console.log("Updating tool with data:", id, data);
+    mutationFn: async ({ id, data }: { id: string; data: any }): Promise<Tool> => {
       const response = await toolApi.update(id, data);
-      console.log("Update tool response:", response);
-      
-      // Handle different possible response structures
-      let apiTool: ToolApiResponse;
-      
-      // If response.data.data exists (new structure)
-      if (response.data && response.data.data) {
-        apiTool = response.data.data as ToolApiResponse;
-      } 
-      // If response.data is the tool object directly (old structure)
-      else if (response.data && response.data.id) {
-        apiTool = response.data as ToolApiResponse;
-      } 
-      // Fallback
-      else {
-        throw new Error("Unexpected response structure from update tool API");
-      }
-      
-      return transformApiToolToTool(apiTool);
+      // The axios interceptor already extracts the data field, so we can use it directly
+      return mapApiToolToTool(response.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
@@ -174,7 +162,7 @@ export function useUpdateTool() {
   });
 }
 
-// Delete a tool
+// Delete a Tool
 export function useDeleteTool() {
   const queryClient = useQueryClient();
   
@@ -188,7 +176,7 @@ export function useDeleteTool() {
   });
 }
 
-// Activate a tool
+// Activate a Tool
 export function useActivateTool() {
   const queryClient = useQueryClient();
   
@@ -202,7 +190,7 @@ export function useActivateTool() {
   });
 }
 
-// Pause a tool
+// Pause a Tool
 export function usePauseTool() {
   const queryClient = useQueryClient();
   

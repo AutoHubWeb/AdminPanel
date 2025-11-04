@@ -1,6 +1,23 @@
 import axios from "axios";
 import type { User, InsertUser } from "@shared/schema";
 
+// Define the data structure for user update API calls
+interface UserUpdateData {
+  fullname: string;
+  email: string;
+  phone: string | null;
+  role: number;
+}
+
+// Define the data structure for user creation API calls
+interface UserCreateData {
+  fullname: string;
+  email: string;
+  phone: string | null;
+  role: number;
+  password: string;
+}
+
 const API_BASE_URL = "https://shopnro.hitly.click/api/v1";
 
 // Create axios instance with default config
@@ -54,9 +71,9 @@ export const authApi = {
 
 // User APIs
 export const userApi = {
-  create: (data: InsertUser) => apiClient.post("/users", data),
-  list: (params?: { keyword?: string }) => apiClient.get("/users", { params }),
-  update: (id: string, data: Partial<InsertUser>) => apiClient.put(`/users/${id}`, data),
+  create: (data: UserCreateData) => apiClient.post("/users", data),
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/users", { params }),
+  update: (id: string, data: Partial<UserUpdateData>) => apiClient.put(`/users/${id}`, data),
   lock: (id: string) => apiClient.put(`/users/${id}/lock`),
   unlock: (id: string) => apiClient.put(`/users/${id}/unlock`),
   delete: (id: string) => apiClient.delete(`/users/${id}`),
@@ -69,7 +86,7 @@ export const userApi = {
 // Tool APIs
 export const toolApi = {
   create: (data: any) => apiClient.post("/tools", data),
-  list: () => apiClient.get("/tools"),
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/tools", { params }),
   detail: (id: string) => apiClient.get(`/tools/${id}`),
   listAdmin: () => apiClient.get("/tools/admin"),
   update: (id: string, data: any) => apiClient.put(`/tools/${id}`, data),
@@ -97,7 +114,7 @@ export const fileApi = {
 // VPS APIs
 export const vpsApi = {
   create: (data: any) => apiClient.post("/vps", data),
-  list: () => apiClient.get("/vps"),
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/vps", { params }),
   detail: (id: string) => apiClient.get(`/vps/${id}`),
   update: (id: string, data: any) => apiClient.put(`/vps/${id}`, data),
   active: (id: string) => apiClient.put(`/vps/${id}/active`),
@@ -108,7 +125,7 @@ export const vpsApi = {
 // Proxy APIs
 export const proxyApi = {
   create: (data: any) => apiClient.post("/proxy", data),
-  list: () => apiClient.get("/proxy"),
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/proxy", { params }),
   detail: (id: string) => apiClient.get(`/proxy/${id}`),
   update: (id: string, data: any) => apiClient.put(`/proxy/${id}`, data),
   active: (id: string) => apiClient.put(`/proxy/${id}/active`),
@@ -118,9 +135,8 @@ export const proxyApi = {
 
 // Transaction APIs
 export const transactionApi = {
-  list: (params?: { keyword?: string }) => apiClient.get("/transactions", { params }),
-  listUser: () => apiClient.get("/transactions/me"),
-  topUp: () => apiClient.get("/transactions/top-up"),
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/transactions", { params }),
+  detail: (id: string) => apiClient.get(`/transactions/${id}`),
 };
 
 // Dashboard APIs
@@ -128,6 +144,15 @@ export const dashboardApi = {
   getSummary: () => apiClient.get("/dashboards/summary"),
   getUserSummary: (year: number) => apiClient.get(`/dashboards/summary-user?year=${year}`),
   getRevenueSummary: (year: number) => apiClient.get(`/dashboards/summary-revenue?year=${year}`),
+};
+
+// Order APIs
+export const orderApi = {
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/orders", { params }),
+  setupVps: (orderId: string, data: { ip: string; username: string; password: string }) => 
+    apiClient.put(`/orders/${orderId}/setup-vps`, data),
+  setupProxy: (orderId: string, data: { proxies: string; expiredAt: string }) => 
+    apiClient.put(`/orders/${orderId}/setup-proxy`, data),
 };
 
 export default apiClient;

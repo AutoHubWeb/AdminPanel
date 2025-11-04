@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useVps, useCreateVps, useUpdateVps, useDeleteVps, useActivateVps, usePauseVps } from "@/hooks/useVps"
 import type { Vps } from "@shared/schema"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 
 export default function VpsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -46,9 +47,24 @@ export default function VpsPage() {
     tags: "",
     price: ""
   })
+  const [searchKeyword, setSearchKeyword] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const { toast } = useToast()
   
-  const { data: vpsList = [], isLoading, error } = useVps()
+  const { data, isLoading, error, isFetching, refetch } = useVps({
+    keyword: searchKeyword || undefined,
+    page: currentPage,
+    limit: itemsPerPage
+  })
+  
+  const vpsList = data?.items || []
+  const meta = data?.meta || {
+    total: 0,
+    page: currentPage,
+    limit: itemsPerPage,
+    totalPages: 1
+  }
   
   // Add debugging
   console.log("VPS List:", vpsList);
@@ -98,6 +114,8 @@ export default function VpsPage() {
                         title: "Thành công",
                         description: `Đã kích hoạt VPS ${vps.name}`,
                       });
+                      // Refetch VPS after activation
+                      refetch();
                     },
                     onError: (error: any) => {
                       console.error("Error activating VPS:", error);
@@ -124,6 +142,8 @@ export default function VpsPage() {
                         title: "Thành công",
                         description: `Đã tạm dừng VPS ${vps.name}`,
                       });
+                      // Refetch VPS after pausing
+                      refetch();
                     },
                     onError: (error: any) => {
                       console.error("Error pausing VPS:", error);
@@ -252,6 +272,8 @@ export default function VpsPage() {
           title: "Thành công",
           description: `Đã xóa VPS ${vps.name} thành công`,
         })
+        // Refetch VPS after deletion
+        refetch();
       },
       onError: (error: any) => {
         toast({
@@ -288,6 +310,8 @@ export default function VpsPage() {
             description: `Đã cập nhật VPS ${updatedVps.name} thành công`,
           })
           setIsFormOpen(false)
+          // Refetch VPS after update
+          refetch();
         },
         onError: (error: any) => {
           console.error("Error updating VPS:", error)
@@ -315,6 +339,8 @@ export default function VpsPage() {
             description: `Đã tạo VPS ${newVps.name} thành công`,
           })
           setIsFormOpen(false)
+          // Refetch VPS after creation
+          refetch();
         },
         onError: (error: any) => {
           console.error("Error creating VPS:", error)
@@ -337,7 +363,20 @@ export default function VpsPage() {
     }
   }
 
-  if (isLoading) {
+  const handleSearch = (keyword: string) => {
+    setSearchKeyword(keyword);
+    // Reset to first page when searching
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Show loading indicator only on initial load, not during subsequent searches or pagination
+  const showLoading = isLoading && !searchKeyword && currentPage === 1;
+
+  if (showLoading) {
     return <div>Đang tải dữ liệu...</div>
   }
 
@@ -363,6 +402,7 @@ export default function VpsPage() {
         onDelete={handleDelete}
         searchPlaceholder="Tìm kiếm VPS..."
         searchKey="name"
+        onSearch={handleSearch}
       />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -536,6 +576,93 @@ export default function VpsPage() {
           </form>
         </DialogContent>
       </Dialog>
+      
+      {isFetching && (searchKeyword || currentPage > 1) && (
+        <div className="text-center text-sm text-gray-500">Đang tải dữ liệu...</div>
+      )}
+      
+      {meta.total > 0 && (
+        <Pagination
+          currentPage={meta.page || currentPage}
+          totalPages={meta.totalPages || 1}
+          totalItems={meta.total || 0}
+          itemsPerPage={meta.limit || itemsPerPage}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
+}
+
+// Simple pagination component for VPS page
+function Pagination({ 
+  currentPage, 
+  totalPages, 
+  totalItems, 
+  itemsPerPage, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  totalItems: number; 
+  itemsPerPage: number; 
+  onPageChange: (page: number) => void; 
+}) {
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
+  
+  const handleFirstPage = () => onPageChange(1);
+  const handlePreviousPage = () => onPageChange(Math.max(1, currentPage - 1));
+  const handleNextPage = () => onPageChange(Math.min(totalPages, currentPage + 1));
+  const handleLastPage = () => onPageChange(totalPages);
+
+  return (
+    <div className="flex items-center justify-between px-2 py-4">
+      <div className="text-sm text-muted-foreground">
+        Hiển thị từ {startIndex} đến {endIndex} trong tổng số {totalItems} kết quả
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleFirstPage}
+          disabled={currentPage === 1}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePreviousPage}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
+        <div className="text-sm font-medium">
+          Trang {currentPage} / {totalPages}
+        </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLastPage}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 }

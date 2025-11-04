@@ -36,7 +36,8 @@ export default function SettingsPage() {
         setIsFetching(true)
         
         const response = await authApi.me()
-        const userData = response.data.data
+        // The axios interceptor already extracts the data property, so we can use response.data directly
+        const userData = response.data
         
         setProfileData({
           email: userData.email || "",

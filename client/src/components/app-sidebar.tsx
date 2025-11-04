@@ -6,7 +6,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  CreditCard
+  CreditCard,
+  Package
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 
@@ -50,6 +51,11 @@ const items = [
     title: "Quản lý Proxy",
     url: "/proxies",
     icon: Shield,
+  },
+  {
+    title: "Quản lý Đơn hàng",
+    url: "/orders",
+    icon: Package,
   },
   {
     title: "Giao dịch",
