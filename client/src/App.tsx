@@ -24,6 +24,9 @@ const LoginPage = lazy(() => import("@/pages/login"));
 // Lazy load the new orders page
 const OrdersPage = lazy(() => import("@/pages/orders"));
 
+// Lazy load the new user balance page
+const UserBalancePage = lazy(() => import("@/pages/user-balance"));
+
 // Loading component for suspense
 const LoadingComponent = () => (
   <div className="flex items-center justify-center h-full">
@@ -69,6 +72,7 @@ function DashboardLayout() {
                 <Route path="/proxies" component={ProxiesPage} />
                 <Route path="/transactions" component={TransactionsPage} />
                 <Route path="/orders" component={OrdersPage} />
+                <Route path="/user-balance" component={UserBalancePage} />
                 <Route path="/settings" component={SettingsPage} />
                 <Route component={NotFound} />
               </Switch>

@@ -66,6 +66,7 @@ const transformApiUserToUser = (apiUser: ApiUser): User => {
     status: apiUser.isLocked === 0 ? 'active' : 'inactive',
     lastLogin: null, // API doesn't provide lastLogin in this response
     createdAt: apiUser.createdAt, // Keep as string
+    accountBalance: apiUser.accountBalance, // Add account balance
   };
 };
 
@@ -75,9 +76,7 @@ export function useUsers(searchParams?: { keyword?: string; page?: number; limit
     queryKey: ["users", searchParams],
     queryFn: async (): Promise<{ items: User[]; meta: any }> => {
       try {
-        console.log("Fetching users with params:", searchParams);
         const response = await userApi.list(searchParams);
-        console.log("API Response:", response);
         
         // Handle the nested data structure from the API
         if (response.data && response.data.items) {
@@ -95,7 +94,6 @@ export function useUsers(searchParams?: { keyword?: string; page?: number; limit
             totalPages
           };
           
-          console.log("Returning users:", userItems);
           return { 
             items: userItems.map(transformApiUserToUser), 
             meta 
@@ -222,6 +220,29 @@ export function useUnlockUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+// Update user balance
+export function useUpdateUserBalance() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      id, 
+      data 
+    }: { 
+      id: string; 
+      data: { amount: number; operation: number; reason: string } 
+    }): Promise<any> => {
+      const response = await userApi.updateBalance(id, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch users query to get updated balances
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.refetchQueries({ queryKey: ["users"] });
     },
   });
 }

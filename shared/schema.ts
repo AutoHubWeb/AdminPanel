@@ -11,6 +11,7 @@ export interface User {
   status: string;
   lastLogin: string | null;
   createdAt: string;
+  accountBalance?: number; // Add account balance property
 }
 
 // Tool interface

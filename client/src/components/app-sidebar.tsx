@@ -7,7 +7,8 @@ import {
   Settings,
   LogOut,
   CreditCard,
-  Package
+  Package,
+  Wallet
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 
@@ -36,6 +37,11 @@ const items = [
     title: "Quản lý User",
     url: "/users",
     icon: Users,
+  },
+  {
+    title: "Số dư User",
+    url: "/user-balance",
+    icon: Wallet,
   },
   {
     title: "Quản lý Tool",
