@@ -27,11 +27,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, Minus } from "lucide-react";
+import { Search, Plus, Minus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import type { User } from "@shared/schema";
 
 export default function UserBalancePage() {
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isBalanceFormOpen, setIsBalanceFormOpen] = useState(false);
   const [balanceData, setBalanceData] = useState({
@@ -39,18 +40,33 @@ export default function UserBalancePage() {
     operation: 1, // 1 for add, -1 for subtract
     reason: "",
   });
+  const itemsPerPage = 10;
   const { toast } = useToast();
 
-  const { data, isLoading, error, refetch } = useUsers({
+  const { data, isLoading, error, isFetching, refetch } = useUsers({
     keyword: searchKeyword || undefined,
+    page: currentPage,
+    limit: itemsPerPage
   });
 
   const userList = data?.items || [];
+  const meta = data?.meta || {
+    total: 0,
+    page: currentPage,
+    limit: itemsPerPage,
+    totalPages: 1
+  };
 
   const updateUserBalanceMutation = useUpdateUserBalance();
 
   const handleSearch = (keyword: string) => {
     setSearchKeyword(keyword);
+    // Reset to first page when searching
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleSelectUser = (user: User) => {
@@ -64,16 +80,6 @@ export default function UserBalancePage() {
 
   const handleSubmitBalance = () => {
     if (!selectedUser) return;
-    
-    // Validate amount is positive
-    if (balanceData.amount <= 0) {
-      toast({
-        title: "Lỗi",
-        description: "Số tiền phải lớn hơn 0",
-        variant: "destructive",
-      });
-      return;
-    }
 
     updateUserBalanceMutation.mutate(
       {
@@ -91,12 +97,11 @@ export default function UserBalancePage() {
             description: `Đã cập nhật số dư tài khoản cho người dùng ${selectedUser.username} thành công`,
           });
           setIsBalanceFormOpen(false);
-          // Refetch users to get updated balance
           refetch();
         },
         onError: (error: any) => {
           console.error("Error updating user balance:", error);
-          let errorMessage = "Có lỗi xảy ra khi cập nhật số dư tài khoản";
+          let errorMessage = "Cập nhật số dư thất bại";
           
           if (error.response?.data?.message) {
             errorMessage = error.response.data.message;
@@ -114,7 +119,10 @@ export default function UserBalancePage() {
     );
   };
 
-  if (isLoading) {
+  // Show loading indicator only on initial load, not during subsequent searches or pagination
+  const showLoading = isLoading && !searchKeyword && currentPage === 1;
+
+  if (showLoading) {
     return <div>Đang tải dữ liệu...</div>;
   }
 
@@ -191,9 +199,23 @@ export default function UserBalancePage() {
                   ))
                 )}
               </tbody>
-
             </table>
           </div>
+          
+          {/* Pagination */}
+          {meta.total > 0 && (
+            <Pagination
+              currentPage={meta.page || currentPage}
+              totalPages={meta.totalPages || 1}
+              totalItems={meta.total || 0}
+              itemsPerPage={meta.limit || itemsPerPage}
+              onPageChange={handlePageChange}
+            />
+          )}
+          
+          {isFetching && (searchKeyword || currentPage > 1) && (
+            <div className="text-center text-sm text-gray-500 mt-4">Đang tải dữ liệu...</div>
+          )}
         </CardContent>
       </Card>
 
@@ -274,6 +296,79 @@ export default function UserBalancePage() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// Simple pagination component for user balance page
+function Pagination({ 
+  currentPage, 
+  totalPages, 
+  totalItems, 
+  itemsPerPage, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  totalItems: number; 
+  itemsPerPage: number; 
+  onPageChange: (page: number) => void; 
+}) {
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
+  
+  const handleFirstPage = () => onPageChange(1);
+  const handlePreviousPage = () => onPageChange(Math.max(1, currentPage - 1));
+  const handleNextPage = () => onPageChange(Math.min(totalPages, currentPage + 1));
+  const handleLastPage = () => onPageChange(totalPages);
+
+  return (
+    <div className="flex items-center justify-between px-2 py-4">
+      <div className="text-sm text-muted-foreground">
+        Hiển thị từ {startIndex} đến {endIndex} trong tổng số {totalItems} kết quả
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleFirstPage}
+          disabled={currentPage === 1}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePreviousPage}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
+        <div className="text-sm font-medium">
+          Trang {currentPage} / {totalPages}
+        </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLastPage}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

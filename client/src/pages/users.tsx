@@ -210,6 +210,16 @@ export default function UsersPage() {
   };
 
   const handleSubmit = () => {
+    // Validate phone number if provided
+    if (formData.phone && formData.phone.length < 10) {
+      toast({
+        title: "Lỗi",
+        description: "Số điện thoại phải có ít nhất 10 ký tự",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (editingUser) {
       // Prepare data for API call with correct types
       const apiData = {
