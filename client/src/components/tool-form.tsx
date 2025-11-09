@@ -82,9 +82,20 @@ export function ToolForm({
     // Transform initial images data if needed
     const initialImages = initialData.images ? initialData.images.map((img: any) => ({
       id: img.id || img,
-      fileUrl: img.fileUrl || '', // This should already be a full URL from the API
+      fileUrl: img.fileUrl?.startsWith('http') 
+        ? img.fileUrl 
+        : `https://shopnro.hitly.click/api/v1/files${img.fileUrl || ''}`,
       fileName: img.fileName || img.originalName || 'Existing image'
     })) : [];
+    
+    // Transform initial plans data if needed
+    const initialPlans = initialData.plans && initialData.plans.length > 0 
+      ? initialData.plans.map((plan: any) => ({
+          name: plan.name || "",
+          price: plan.price?.toString() || "",
+          duration: plan.duration?.toString() || ""
+        }))
+      : [];
     
     setFormData({
       code: initialData.code || "",
@@ -93,7 +104,7 @@ export function ToolForm({
       demo: initialData.demo || "",
       linkDownload: initialData.linkDownload || "",
       images: initialImages,
-      plans: initialData.plans || [],
+      plans: initialPlans,
       ...initialData
     })
   }, [initialData, isOpen, isLoading])
@@ -117,7 +128,14 @@ export function ToolForm({
     }
     
     console.log("Submitting tool data:", toolData)
-    await onSubmit(toolData)
+    try {
+      await onSubmit(toolData)
+      // If we get here, the submission was successful
+      // The parent component should handle closing the form and showing success messages
+    } catch (error: any) {
+      console.error("Error submitting tool:", error)
+      // Error handling should be done in the parent component's onSubmit function
+    }
   }
 
   const handleInputChange = (name: string, value: string) => {
@@ -362,7 +380,9 @@ export function ToolForm({
                         <div key={`${image.id}-${index}`} className="relative group">
                           <div className="aspect-square rounded-md overflow-hidden border bg-muted">
                             <img 
-                              src={image.fileUrl.startsWith('http') ? image.fileUrl : `https://shopnro.hitly.click/api/v1/files${image.fileUrl}`}
+                              src={image.fileUrl.startsWith('http') 
+                                ? image.fileUrl 
+                                : `https://shopnro.hitly.click/api/v1/files${image.fileUrl}`}
                               alt={`Preview ${index}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {

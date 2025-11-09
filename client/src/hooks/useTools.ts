@@ -137,8 +137,16 @@ export function useCreateTool() {
   return useMutation({
     mutationFn: async (toolData: any): Promise<Tool> => {
       const response = await toolApi.create(toolData);
-      const apiResponse = response.data as ToolListApiResponse;
-      return mapApiToolToTool(apiResponse.data.items[0]);
+      // Handle response based on actual API structure
+      if (response.data && response.data.id) {
+        // If response.data is already a Tool object
+        return mapApiToolToTool(response.data);
+      } else if (response.data && response.data.data && response.data.data.id) {
+        // If response.data has a nested data object (from interceptor)
+        return mapApiToolToTool(response.data.data);
+      }
+      // Fallback
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
