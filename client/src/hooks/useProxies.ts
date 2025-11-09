@@ -122,8 +122,16 @@ export function useCreateProxy() {
   return useMutation({
     mutationFn: async (proxyData: any): Promise<Proxy> => {
       const response = await proxyApi.create(proxyData);
-      const apiResponse = response.data as ProxyListApiResponse;
-      return mapApiProxyToProxy(apiResponse.data.items[0]);
+      // Handle response based on actual API structure
+      if (response.data && response.data.id) {
+        // If response.data is already a Proxy object
+        return mapApiProxyToProxy(response.data);
+      } else if (response.data && response.data.data && response.data.data.items) {
+        // If response.data has a nested data object (from interceptor)
+        return mapApiProxyToProxy(response.data.data.items[0]);
+      }
+      // Fallback
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proxies"] });

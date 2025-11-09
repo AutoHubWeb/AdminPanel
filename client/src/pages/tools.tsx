@@ -122,7 +122,7 @@ export default function ToolsPage() {
                         title: "Thành công",
                         description: `Đã kích hoạt Tool ${tool.name}`,
                       });
-                      // Refetch tools after activation
+                      // Use refetch instead of reload to update the list
                       refetch();
                     },
                     onError: (error: any) => {
@@ -150,7 +150,7 @@ export default function ToolsPage() {
                         title: "Thành công",
                         description: `Đã tạm dừng Tool ${tool.name}`,
                       });
-                      // Refetch tools after pausing
+                      // Use refetch instead of reload to update the list
                       refetch();
                     },
                     onError: (error: any) => {
@@ -295,7 +295,7 @@ const handleDelete = (tool: Tool) => {
         title: "Thành công",
         description: `Đã xóa Tool ${tool.name} thành công`,
       })
-      // Refetch tools after deletion
+      // Use refetch instead of reload to update the list
       refetch();
     },
     onError: (error: any) => {
@@ -343,7 +343,7 @@ const handleSubmit = (toolData: any) => {
             description: `Đã cập nhật Tool ${updatedTool.name} thành công`,
           })
           setIsFormOpen(false)
-          // Refetch tools after update
+          // Use refetch instead of reload to update the list
           refetch();
         },
         onError: (error: any) => {
@@ -372,7 +372,7 @@ const handleSubmit = (toolData: any) => {
             description: `Đã tạo Tool ${newTool.name} thành công`,
           })
           setIsFormOpen(false)
-          // Refetch tools after creation
+          // Use refetch instead of reload to update the list
           refetch();
         },
         onError: (error: any) => {

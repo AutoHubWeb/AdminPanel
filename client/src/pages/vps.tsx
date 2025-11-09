@@ -35,7 +35,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 export default function VpsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingVps, setEditingVps] = useState<Vps | null>(null)
-  const [formData, setFormData] = useState<Record<string, any>>({
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     ram: "",
@@ -351,6 +351,8 @@ export default function VpsPage() {
             errorMessage = error.response.data.message
           } else if (error.response?.data?.error) {
             errorMessage = error.response.data.error
+          } else if (error.message) {
+            errorMessage = error.message;
           }
           
           toast({

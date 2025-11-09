@@ -39,8 +39,7 @@ export default function ProxiesPage() {
     name: "",
     description: "",
     inventory: "",
-    price: "",
-    status: 1
+    price: ""
   })
   const [searchKeyword, setSearchKeyword] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -191,8 +190,7 @@ export default function ProxiesPage() {
       name: proxy.name || "",
       description: proxy.description || "",
       inventory: proxy.inventory?.toString() || "",
-      price: proxy.price?.toString() || "",
-      status: proxy.status
+      price: proxy.price?.toString() || ""
     })
     setIsFormOpen(true)
   }
@@ -203,8 +201,7 @@ export default function ProxiesPage() {
       name: "",
       description: "",
       inventory: "",
-      price: "",
-      status: 1
+      price: ""
     })
     setIsFormOpen(true)
   }
@@ -292,6 +289,8 @@ export default function ProxiesPage() {
             errorMessage = error.response.data.message
           } else if (error.response?.data?.error) {
             errorMessage = error.response.data.error
+          } else if (error.message) {
+            errorMessage = error.message;
           }
           
           toast({
@@ -402,18 +401,6 @@ export default function ProxiesPage() {
                   onChange={(e) => handleInputChange("price", e.target.value)}
                   required
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="status">Trạng thái</Label>
-                <div className="flex items-center justify-between">
-                  <span>Hoạt động</span>
-                  <Switch
-                    id="status"
-                    checked={formData.status === 1}
-                    onCheckedChange={(checked) => handleInputChange("status", checked ? "1" : "0")}
-                  />
-                </div>
               </div>
             </div>
             

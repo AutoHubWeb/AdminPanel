@@ -127,6 +127,12 @@ export function useTools(searchParams?: { keyword?: string; page?: number; limit
         };
       }
     },
+    // Add options to ensure data is fresh
+    gcTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30, // 30 seconds
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchOnMount: true
   });
 }
 
@@ -150,6 +156,8 @@ export function useCreateTool() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
+      // Also try to refetch immediately
+      queryClient.refetchQueries({ queryKey: ["tools"] });
     },
   });
 }
@@ -166,6 +174,8 @@ export function useUpdateTool() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
+      // Also try to refetch immediately
+      queryClient.refetchQueries({ queryKey: ["tools"] });
     },
   });
 }
@@ -180,6 +190,8 @@ export function useDeleteTool() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
+      // Also try to refetch immediately
+      queryClient.refetchQueries({ queryKey: ["tools"] });
     },
   });
 }
@@ -194,6 +206,8 @@ export function useActivateTool() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
+      // Also try to refetch immediately
+      queryClient.refetchQueries({ queryKey: ["tools"] });
     },
   });
 }
@@ -208,6 +222,8 @@ export function usePauseTool() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tools"] });
+      // Also try to refetch immediately
+      queryClient.refetchQueries({ queryKey: ["tools"] });
     },
   });
 }

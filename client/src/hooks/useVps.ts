@@ -136,8 +136,16 @@ export function useCreateVps() {
   return useMutation({
     mutationFn: async (vpsData: any): Promise<Vps> => {
       const response = await vpsApi.create(vpsData);
-      const apiResponse = response.data as VpsListApiResponse;
-      return mapApiVpsToVps(apiResponse.data.items[0]);
+      // Handle response based on actual API structure
+      if (response.data && response.data.id) {
+        // If response.data is already a VPS object
+        return mapApiVpsToVps(response.data);
+      } else if (response.data && response.data.data && response.data.data.items) {
+        // If response.data has a nested data object (from interceptor)
+        return mapApiVpsToVps(response.data.data.items[0]);
+      }
+      // Fallback
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vps"] });
@@ -152,8 +160,16 @@ export function useUpdateVps() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }): Promise<Vps> => {
       const response = await vpsApi.update(id, data);
-      // The axios interceptor already extracts the data field, so we can use it directly
-      return mapApiVpsToVps(response.data);
+      // Handle response based on actual API structure
+      if (response.data && response.data.id) {
+        // If response.data is already a VPS object
+        return mapApiVpsToVps(response.data);
+      } else if (response.data && response.data.data) {
+        // If response.data has a nested data object (from interceptor)
+        return mapApiVpsToVps(response.data.data);
+      }
+      // Fallback
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vps"] });
