@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,13 +42,14 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
     expiredAt: "",
   });
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [setupCompleted, setSetupCompleted] = useState(false); // Track if setup was completed
   
   const setupVpsMutation = useSetupVpsOrder();
   const setupProxyMutation = useSetupProxyOrder();
 
-  // Reset form when modal opens/closes or order changes
-  useState(() => {
-    if (open && order) {
+  // Reset form and setup status when modal opens/closes or order changes
+  useEffect(() => {
+    if (open) {
       setFormData({
         ip: "",
         username: "",
@@ -57,8 +58,9 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
         expiredAt: "",
       });
       setDate(undefined);
+      setSetupCompleted(false); // Reset setup completion status
     }
-  });
+  }, [open, order]);
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -119,8 +121,9 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
         });
       }
       
-      onSetupSuccess();
-      onOpenChange(false);
+      setSetupCompleted(true); // Mark setup as completed
+      onSetupSuccess(); // Notify parent component of success
+      // Don't close the modal automatically to allow multiple setups
     } catch (error: any) {
       console.error("Setup error:", error);
       toast({
@@ -138,17 +141,20 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {order.type === "vps" ? "Setup VPS" : 
-             order.type === "proxy" ? "Setup Proxy" : "Setup"}
+            {order?.type === "vps" ? "Setup VPS" : 
+             order?.type === "proxy" ? "Setup Proxy" : "Setup"}
           </DialogTitle>
           <DialogDescription>
-            Nhập thông tin cần thiết để setup {order.type === "vps" ? "VPS" : "Proxy"}
+            Nhập thông tin cần thiết để setup {order?.type === "vps" ? "VPS" : "Proxy"}
+            {setupCompleted && (
+              <div className="mt-2 text-green-600">✓ Setup thành công! Bạn có thể tiếp tục setup lại.</div>
+            )}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           <div className="space-y-4 py-4">
-            {order.type === "vps" && order.vps && (
+            {order?.type === "vps" && order.vps && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="ip">IP Address</Label>
@@ -186,7 +192,7 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
               </>
             )}
             
-            {order.type === "proxy" && order.proxy && (
+            {order?.type === "proxy" && order.proxy && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="proxies">Proxies</Label>
@@ -236,16 +242,17 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
               variant="outline" 
               onClick={() => onOpenChange(false)}
             >
-              Hủy
+              Đóng
             </Button>
             <Button 
               type="submit"
               disabled={
-                (order.type === "vps" && (setupVpsMutation.isPending || !formData.ip || !formData.username || !formData.password)) ||
-                (order.type === "proxy" && (setupProxyMutation.isPending || !formData.proxies || !formData.expiredAt))
+                (order?.type === "vps" && (setupVpsMutation.isPending || !formData.ip || !formData.username || !formData.password)) ||
+                (order?.type === "proxy" && (setupProxyMutation.isPending || !formData.proxies || !formData.expiredAt))
               }
             >
-              {setupVpsMutation.isPending || setupProxyMutation.isPending ? "Đang setup..." : "Setup"}
+              {setupVpsMutation.isPending || setupProxyMutation.isPending ? "Đang setup..." : 
+               setupCompleted ? "Setup lại" : "Setup"}
             </Button>
           </DialogFooter>
         </form>

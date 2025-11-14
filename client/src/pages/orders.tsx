@@ -119,8 +119,8 @@ export default function OrdersPage() {
     { 
       header: "Hành động", 
       accessor: (order: Order) => {
-        // Only show setup button for VPS and Proxy orders with "setup" status
-        if ((order.type === "vps" || order.type === "proxy") && order.status === "setup") {
+        // Show setup button for all VPS and Proxy orders (allow multiple setups)
+        if (order.type === "vps" || order.type === "proxy") {
           return (
             <Button 
               size="sm" 
