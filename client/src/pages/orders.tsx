@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/pagination"
 import { OrderSetupModal } from "@/components/order-setup-modal"
+import { ToolApiKeyModal } from "@/components/tool-apikey-modal"
 import { useOrders } from "@/hooks/useOrders"
 import type { Order } from "@shared/schema"
 
@@ -12,6 +13,8 @@ export default function OrdersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [setupOrder, setSetupOrder] = useState<Order | null>(null)
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false)
+  const [apiKeyOrder, setApiKeyOrder] = useState<Order | null>(null)
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false)
   const itemsPerPage = 10
   
   const { data, isLoading, error, isFetching, refetch } = useOrders(
@@ -133,6 +136,20 @@ export default function OrdersPage() {
             </Button>
           );
         }
+        // Show change API key button for Tool orders
+        else if (order.type === "tool") {
+          return (
+            <Button 
+              size="sm" 
+              onClick={() => {
+                setApiKeyOrder(order);
+                setIsApiKeyModalOpen(true);
+              }}
+            >
+              Đổi API Key
+            </Button>
+          );
+        }
         return null;
       }
     }
@@ -150,6 +167,11 @@ export default function OrdersPage() {
 
   const handleSetupSuccess = () => {
     // Refetch the order list after successful setup
+    refetch();
+  }
+
+  const handleChangeApiKeySuccess = () => {
+    // Refetch the order list after successful API key change
     refetch();
   }
 
@@ -201,6 +223,13 @@ export default function OrdersPage() {
         open={isSetupModalOpen}
         onOpenChange={setIsSetupModalOpen}
         onSetupSuccess={handleSetupSuccess}
+      />
+      
+      <ToolApiKeyModal
+        order={apiKeyOrder}
+        open={isApiKeyModalOpen}
+        onOpenChange={setIsApiKeyModalOpen}
+        onChangeApiKeySuccess={handleChangeApiKeySuccess}
       />
     </div>
   )

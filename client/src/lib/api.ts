@@ -153,6 +153,9 @@ export const orderApi = {
     apiClient.put(`/orders/${orderId}/setup-vps`, data),
   setupProxy: (orderId: string, data: { proxies: string; expiredAt: string }) => 
     apiClient.put(`/orders/${orderId}/setup-proxy`, data),
+  // Add the new API endpoint for changing tool order API key
+  changeToolApiKey: (orderId: string, data: { apiKey: string }) => 
+    apiClient.put(`/orders/${orderId}/update-api-key`, data),
 };
 
 export default apiClient;
