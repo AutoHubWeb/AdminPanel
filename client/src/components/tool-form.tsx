@@ -21,6 +21,7 @@ import {
 import { Plus, Trash2, Upload, Image, Package, Info } from "lucide-react"
 import { fileApi } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { RichTextEditor } from "@/components/rich-text-editor"
 
 interface Plan {
   name: string
@@ -293,13 +294,10 @@ export function ToolForm({
 
                   <div className="space-y-2">
                     <Label htmlFor="description">Mô tả</Label>
-                    <Textarea
-                      id="description"
+                    <RichTextEditor
                       value={formData.description}
-                      onChange={(e) => handleInputChange("description", e.target.value)}
-                      data-testid="textarea-description"
+                      onChange={(value) => handleInputChange("description", value)}
                       placeholder="Nhập mô tả tool"
-                      rows={3}
                     />
                   </div>
                 </CardContent>

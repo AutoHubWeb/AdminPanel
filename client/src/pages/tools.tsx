@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useTools, useCreateTool, useUpdateTool, useDeleteTool, useActivateTool, usePauseTool } from "@/hooks/useTools"
 import { toolApi } from "@/lib/api"
 import { ToolForm } from "@/components/tool-form" // Import ToolForm component
+import { SafeHtml } from "@/components/safe-html" // Import SafeHtml component
 import type { Tool } from "@shared/schema"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { fileApi } from "@/lib/api"
@@ -101,7 +102,7 @@ export default function ToolsPage() {
       header: "Mô tả", 
       accessor: (tool: Tool) => (
         <div className="max-w-xs truncate" title={tool.description || ""}>
-          {tool.description || "N/A"}
+          <SafeHtml html={tool.description || "N/A"} />
         </div>
       )
     },
