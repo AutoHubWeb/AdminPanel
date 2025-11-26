@@ -12,7 +12,7 @@ import { Eye, EyeOff } from "lucide-react";
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { login, isAuthenticated } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -32,18 +32,18 @@ export default function LoginPage() {
 
     try {
       // Make API call to the external login endpoint using authApi
-      const response = await authApi.login(username, password);
+      const response = await authApi.login(email, password);
 
-      if (response.data && response.data.data) {
+      if (response.data && response.data.user) {
         // Transform the API response to match our user structure
         const userData = {
-          username: response.data.data.user?.username || username,
-          role: response.data.data.user?.role || "user",
+          username: response.data.user?.username || email,
+          role: response.data.user?.role || "user",
           // Add other required fields
         };
         
         // Store token in localStorage for future API calls
-        localStorage.setItem("authToken", response.data.data.accessToken);
+        localStorage.setItem("authToken", response.data.accessToken);
         
         // Use auth context to login - redirection will be handled by useEffect
         login(userData);
@@ -80,12 +80,12 @@ export default function LoginPage() {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="username">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
+                id="email"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Nhập email"
               />

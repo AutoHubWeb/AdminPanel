@@ -40,8 +40,8 @@ apiClient.interceptors.request.use((config) => {
 // Response interceptor to handle common response structures
 apiClient.interceptors.response.use(
   (response) => {
-    // If response.data is an object with a data property, return that
-    if (response.data && response.data.data) {
+    // If response.data is an object with a data property and it's not a login response, return that
+    if (response.data && response.data.data && !response.config.url?.includes('/auth/login')) {
       return { ...response, data: response.data.data };
     }
     return response;
