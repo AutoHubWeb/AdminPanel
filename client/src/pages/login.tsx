@@ -81,12 +81,6 @@ export default function LoginPage() {
               </Alert>
             )}
             
-            <div className="text-sm text-gray-500 mb-4">
-              <p className="font-medium">Demo Account:</p>
-              <p>Email: admin@example.com</p>
-              <p>Password: password123</p>
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
