@@ -44,6 +44,9 @@ interface UploadedImage {
   fileName: string
 }
 
+// Get base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://shopnro.hitly.click/api/v1";
+
 interface ToolFormProps {
   title: string
   description?: string
@@ -85,7 +88,7 @@ export function ToolForm({
       id: img.id || img,
       fileUrl: img.fileUrl?.startsWith('http') 
         ? img.fileUrl 
-        : `https://shopnro.hitly.click/api/v1/files${img.fileUrl || ''}`,
+        : `${API_BASE_URL}/files${img.fileUrl || ''}`,
       fileName: img.fileName || img.originalName || 'Existing image'
     })) : [];
     
@@ -128,7 +131,6 @@ export function ToolForm({
       }))
     }
     
-    console.log("Submitting tool data:", toolData)
     try {
       await onSubmit(toolData)
       // If we get here, the submission was successful
@@ -185,8 +187,6 @@ export function ToolForm({
           const response = await fileApi.uploadSingle(formDataObj)
           const fileResponse = response as unknown as FileUploadResponse
           
-          console.log("File upload response:", fileResponse);
-          
           if (fileResponse.status === 201) {
             // Add uploaded image to the form data using the full URL from the API response
             setFormData((prev: typeof formData) => ({
@@ -201,8 +201,6 @@ export function ToolForm({
               ]
             }))
             
-            // Log the updated state
-            console.log("Added image to form data:", fileResponse.data);
           }
         } catch (uploadError) {
           console.error("Error uploading file:", uploadError)
@@ -380,7 +378,7 @@ export function ToolForm({
                             <img 
                               src={image.fileUrl.startsWith('http') 
                                 ? image.fileUrl 
-                                : `https://shopnro.hitly.click/api/v1/files${image.fileUrl}`}
+                                : `${API_BASE_URL}/files${image.fileUrl}`}
                               alt={`Preview ${index}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {

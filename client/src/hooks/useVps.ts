@@ -64,7 +64,6 @@ export function useVps(searchParams?: { keyword?: string; page?: number; limit?:
     queryFn: async (): Promise<{ items: Vps[]; meta: any }> => {
       try {
         const response = await vpsApi.list(searchParams);
-        console.log("VPS API Response:", response);
         
         // Handle the nested data structure from the API
         if (response.data && response.data.items) {
@@ -85,7 +84,6 @@ export function useVps(searchParams?: { keyword?: string; page?: number; limit?:
           // Map API response to ensure all fields are properly typed
           const mappedVpsItems: Vps[] = vpsItems.map(mapApiVpsToVps);
           
-          console.log("Mapped VPS Items:", mappedVpsItems);
           return { items: mappedVpsItems, meta };
         }
         
@@ -107,7 +105,6 @@ export function useVps(searchParams?: { keyword?: string; page?: number; limit?:
         // Map API response to ensure all fields are properly typed
         const mappedVpsItems: Vps[] = vpsItems.map(mapApiVpsToVps);
         
-        console.log("Mapped VPS Items:", mappedVpsItems);
         return { items: mappedVpsItems, meta };
       } catch (error) {
         console.error("Error fetching VPS data:", error);

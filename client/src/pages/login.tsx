@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import axios from "axios";
+import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,11 +31,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Make API call to the external login endpoint
-      const response = await axios.post("https://shopnro.hitly.click/api/v1/auth/login", {
-        email: username,
-        password
-      });
+      // Make API call to the external login endpoint using authApi
+      const response = await authApi.login(username, password);
 
       if (response.data && response.data.data) {
         // Transform the API response to match our user structure

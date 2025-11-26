@@ -18,7 +18,7 @@ interface UserCreateData {
   password: string;
 }
 
-const API_BASE_URL = "https://shopnro.hitly.click/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://shopnro.hitly.click/api/v1";
 
 // Create axios instance with default config
 const apiClient = axios.create({

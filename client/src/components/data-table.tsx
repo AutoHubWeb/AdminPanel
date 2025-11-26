@@ -51,11 +51,6 @@ export function DataTable<T extends { id: string }>({
   searchKey,
   onSearch
 }: DataTableProps<T>) {
-  // Add debugging
-  console.log(`DataTable ${title}:`, data);
-  console.log(`DataTable ${title} - Is Array:`, Array.isArray(data));
-  console.log(`DataTable ${title} - Length:`, data?.length);
-
   const [search, setSearch] = useState("")
   const [deleteItem, setDeleteItem] = useState<T | null>(null)
 
@@ -76,15 +71,12 @@ export function DataTable<T extends { id: string }>({
       )
     : Array.isArray(data) ? data : []
   
-  console.log("Filtered data:", filteredData)
-
   const handleDelete = (item: T) => {
     setDeleteItem(item)
   }
 
   const confirmDelete = () => {
     if (deleteItem && onDelete) {
-      console.log(`Deleting item:`, deleteItem)
       onDelete(deleteItem)
       setDeleteItem(null)
     }
@@ -158,7 +150,6 @@ export function DataTable<T extends { id: string }>({
                           size="sm" 
                           variant="ghost" 
                           onClick={() => {
-                            console.log(`Editing item:`, item)
                             onEdit(item)
                           }}
                           data-testid={`button-edit-${index}`}

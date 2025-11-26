@@ -85,11 +85,6 @@ export default function ToolsPage() {
     totalPages: 1
   }
   
-  // Add debugging
-  console.log("Tool List:", toolList);
-  console.log("Is Array:", Array.isArray(toolList));
-  console.log("Length:", toolList.length);
-
   const createToolMutation = useCreateTool()
   const updateToolMutation = useUpdateTool()
   const deleteToolMutation = useDeleteTool()
@@ -228,7 +223,7 @@ export default function ToolsPage() {
           id: img.id,
           fileUrl: img.fileUrl?.startsWith('http') 
             ? img.fileUrl 
-            : `https://shopnro.hitly.click/api/v1/files${img.fileUrl || ''}`,
+            : `${API_BASE_URL}/files${img.fileUrl || ''}`,
           fileName: img.fileName || img.originalName || 'Existing image'
         }))
       : []
@@ -531,3 +526,6 @@ function Pagination({
     </div>
   );
 }
+
+// Get base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://shopnro.hitly.click/api/v1";

@@ -58,7 +58,6 @@ export function EntityForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log(`Submitting ${title}:`, formData)
     try {
       await onSubmit(formData)
       // Only close form if submission was successful

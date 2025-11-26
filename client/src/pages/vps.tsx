@@ -66,11 +66,6 @@ export default function VpsPage() {
     totalPages: 1
   }
   
-  // Add debugging
-  console.log("VPS List:", vpsList);
-  console.log("Is Array:", Array.isArray(vpsList));
-  console.log("Length:", vpsList.length);
-
   const createVpsMutation = useCreateVps()
   const updateVpsMutation = useUpdateVps()
   const deleteVpsMutation = useDeleteVps()
