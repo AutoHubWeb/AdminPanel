@@ -34,16 +34,18 @@ export default function LoginPage() {
       // Make API call to the external login endpoint using authApi
       const response = await authApi.login(email, password);
 
-      if (response.data && response.data.user) {
+      if (response.data && response.data.data && response.data.data.user) {
         // Transform the API response to match our user structure
         const userData = {
-          username: response.data.user?.username || email,
-          role: response.data.user?.role || "user",
-          // Add other required fields
+          id: response.data.data.user.id,
+          username: response.data.data.user.fullname || response.data.data.user.email,
+          email: response.data.data.user.email,
+          role: response.data.data.user.role === 1 ? "admin" : "user",
         };
         
-        // Store token in localStorage for future API calls
-        localStorage.setItem("authToken", response.data.accessToken);
+        // Store tokens in localStorage for future API calls
+        localStorage.setItem("authToken", response.data.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.data.refreshToken);
         
         // Use auth context to login - redirection will be handled by useEffect
         login(userData);
@@ -78,6 +80,12 @@ export default function LoginPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+            
+            <div className="text-sm text-gray-500 mb-4">
+              <p className="font-medium">Demo Account:</p>
+              <p>Email: admin@example.com</p>
+              <p>Password: password123</p>
+            </div>
             
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

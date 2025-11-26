@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 interface User {
   username: string;
   role: string;
+  email?: string;
+  id?: string;
 }
 
 interface AuthContextType {
@@ -32,9 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
           setIsAuthenticated(true);
         } catch (error) {
+          console.error("Failed to parse user data:", error);
           localStorage.removeItem("user");
           localStorage.removeItem("isAuthenticated");
           localStorage.removeItem("authToken");
+          localStorage.removeItem("refreshToken");
         }
       }
       
@@ -56,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user");
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("authToken");
+    localStorage.removeItem("refreshToken");
     setUser(null);
     setIsAuthenticated(false);
   };
