@@ -48,8 +48,32 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
   const setupProxyMutation = useSetupProxyOrder();
 
   // Reset form and setup status when modal opens/closes or order changes
+  // Populate form with existing setup data if available
   useEffect(() => {
-    if (open) {
+    if (open && order) {
+      // Check if order has existing setup data and populate form
+      if (order.type === "vps" && order.vpsOrder) {
+        setFormData(prev => ({
+          ...prev,
+          ip: order.vpsOrder?.ip || "",
+          username: order.vpsOrder?.username || "",
+          password: order.vpsOrder?.password || "",
+        }));
+      } else if (order.type === "proxy" && order.proxyOrder) {
+        setFormData(prev => ({
+          ...prev,
+          proxies: order.proxyOrder?.proxies || "",
+          expiredAt: order.proxyOrder?.expiredAt || "",
+        }));
+        
+        // Set date object for calendar
+        if (order.proxyOrder?.expiredAt) {
+          setDate(new Date(order.proxyOrder.expiredAt));
+        }
+      }
+      setSetupCompleted(false); // Reset setup completion status
+    } else if (!open) {
+      // Reset form when closing
       setFormData({
         ip: "",
         username: "",
@@ -58,7 +82,7 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
         expiredAt: "",
       });
       setDate(undefined);
-      setSetupCompleted(false); // Reset setup completion status
+      setSetupCompleted(false);
     }
   }, [open, order]);
 
@@ -141,13 +165,20 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {order?.type === "vps" ? "Setup VPS" : 
-             order?.type === "proxy" ? "Setup Proxy" : "Setup"}
+            {order?.type === "vps" ? 
+              (order.vpsOrder ? "Chỉnh sửa thông tin VPS" : "Setup VPS") : 
+             order?.type === "proxy" ? 
+              (order.proxyOrder ? "Chỉnh sửa thông tin Proxy" : "Setup Proxy") : 
+             "Setup"}
           </DialogTitle>
           <DialogDescription>
-            Nhập thông tin cần thiết để setup {order?.type === "vps" ? "VPS" : "Proxy"}
+            {order?.vpsOrder || order?.proxyOrder ? (
+              "Chỉnh sửa thông tin đã setup bên dưới"
+            ) : (
+              <>Nhập thông tin cần thiết để setup {order?.type === "vps" ? "VPS" : "Proxy"}</>
+            )}
             {setupCompleted && (
-              <div className="mt-2 text-green-600">✓ Setup thành công! Bạn có thể tiếp tục setup lại.</div>
+              <div className="mt-2 text-green-600">✓ {order?.vpsOrder || order?.proxyOrder ? "Cập nhật" : "Setup"} thành công! Bạn có thể tiếp tục cập nhật.</div>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -251,8 +282,9 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
                 (order?.type === "proxy" && (setupProxyMutation.isPending || !formData.proxies || !formData.expiredAt))
               }
             >
-              {setupVpsMutation.isPending || setupProxyMutation.isPending ? "Đang setup..." : 
-               setupCompleted ? "Setup lại" : "Setup"}
+              {setupVpsMutation.isPending || setupProxyMutation.isPending ? "Đang xử lý..." : 
+               setupCompleted ? "Cập nhật" : 
+               (order?.vpsOrder || order?.proxyOrder ? "Cập nhật" : "Setup")}
             </Button>
           </DialogFooter>
         </form>

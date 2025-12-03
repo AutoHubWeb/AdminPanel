@@ -4,4 +4,4 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
-#.env # Commented out to allow .env file to be used
+.env 
