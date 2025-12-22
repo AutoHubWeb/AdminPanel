@@ -85,8 +85,8 @@ export const userApi = {
 // Tool APIs
 export const toolApi = {
   create: (data: any) => apiClient.post("/tools", data),
-  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/tools", { params }),
-  detail: (id: string) => apiClient.get(`/tools/${id}`),
+  list: (params?: { keyword?: string; page?: number; limit?: number }) => apiClient.get("/tools/admin", { params }),
+  detail: (id: string) => apiClient.get(`/tools/admin/${id}`),
   listAdmin: () => apiClient.get("/tools/admin"),
   update: (id: string, data: any) => apiClient.put(`/tools/${id}`, data),
   active: (id: string) => apiClient.put(`/tools/${id}/active`),

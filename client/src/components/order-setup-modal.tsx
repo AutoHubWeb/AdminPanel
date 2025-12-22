@@ -213,7 +213,7 @@ export function OrderSetupModal({ order, open, onOpenChange, onSetupSuccess }: O
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
-                    type="password"
+                    type="text"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     placeholder="••••••••"

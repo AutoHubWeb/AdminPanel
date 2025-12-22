@@ -26,15 +26,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Pagination } from "@/components/pagination"
 import { useToast } from "@/hooks/use-toast"
 import { useTools, useCreateTool, useUpdateTool, useDeleteTool, useActivateTool, usePauseTool } from "@/hooks/useTools"
 import { toolApi } from "@/lib/api"
 import { ToolForm } from "@/components/tool-form" // Import ToolForm component
 import { SafeHtml } from "@/components/safe-html" // Import SafeHtml component
 import type { Tool } from "@shared/schema"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { fileApi } from "@/lib/api"
-
 interface Plan {
   name: string;
   price: string;
@@ -58,6 +57,7 @@ export default function ToolsPage() {
     code: "",
     description: "",
     demo: "",
+    linkDownload: "",
     plans: [
       { name: "", price: "", duration: "" },
       { name: "", price: "", duration: "" },
@@ -233,6 +233,7 @@ export default function ToolsPage() {
       code: detailedTool.code || "",
       description: detailedTool.description || "",
       demo: detailedTool.demo || "",
+      linkDownload: detailedTool.linkDownload || "",
       plans: plansData,
       images: imagesData, // Pass images data to form
       imageIds: [] // Reset image IDs when editing
@@ -251,6 +252,7 @@ export default function ToolsPage() {
       code: tool.code || "",
       description: tool.description || "",
       demo: tool.demo || "",
+      linkDownload: tool.linkDownload || "",
       plans: [
         { name: "", price: "", duration: "" },
         { name: "", price: "", duration: "" },
@@ -272,6 +274,7 @@ const handleAdd = () => {
     code: "",
     description: "",
     demo: "",
+    linkDownload: "",
     plans: [
       { name: "", price: "", duration: "" },
       { name: "", price: "", duration: "" },
@@ -436,6 +439,20 @@ const handleSubmit = (toolData: any) => {
         onSearch={handleSearch}
       />
 
+      {isFetching && (searchKeyword || currentPage > 1) && (
+        <div className="text-center text-sm text-gray-500">Đang tải dữ liệu...</div>
+      )}
+
+      {meta.total > 0 && (
+        <Pagination
+          currentPage={meta.page || currentPage}
+          totalPages={meta.totalPages || 1}
+          totalItems={meta.total || 0}
+          itemsPerPage={meta.limit || itemsPerPage}
+          onPageChange={handlePageChange}
+        />
+      )}
+
       {/* Use Dialog with ToolForm component inside */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
@@ -451,81 +468,7 @@ const handleSubmit = (toolData: any) => {
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-// Simple pagination component for tools page
-function Pagination({ 
-  currentPage, 
-  totalPages, 
-  totalItems, 
-  itemsPerPage, 
-  onPageChange 
-}: { 
-  currentPage: number; 
-  totalPages: number; 
-  totalItems: number; 
-  itemsPerPage: number; 
-  onPageChange: (page: number) => void; 
-}) {
-  const startIndex = (currentPage - 1) * itemsPerPage + 1;
-  const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
-  
-  const handleFirstPage = () => onPageChange(1);
-  const handlePreviousPage = () => onPageChange(Math.max(1, currentPage - 1));
-  const handleNextPage = () => onPageChange(Math.min(totalPages, currentPage + 1));
-  const handleLastPage = () => onPageChange(totalPages);
-
-  return (
-    <div className="flex items-center justify-between px-2 py-4">
-      <div className="text-sm text-muted-foreground">
-        Hiển thị từ {startIndex} đến {endIndex} trong tổng số {totalItems} kết quả
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleFirstPage}
-          disabled={currentPage === 1}
-        >
-          <ChevronsLeft className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePreviousPage}
-          disabled={currentPage === 1}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <div className="text-sm font-medium">
-          Trang {currentPage} / {totalPages}
-        </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLastPage}
-          disabled={currentPage === totalPages}
-        >
-          <ChevronsRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
+  )}
 
 // Get base URL from environment variable
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;

@@ -21,6 +21,7 @@ export interface Tool {
   name: string;
   description: string | null;
   demo: string | null;
+  linkDownload?: string | null;
   slug: string;
   soldQuantity: number;
   viewCount: number;
